@@ -28,13 +28,17 @@ class GameState(BaseModel):
     funding: float = 10000.0
     reputation: float = 0.0
     day: int = 1
+    language: str = "cn"  # cn or en
     current_project: Optional[Project] = None
     students: List[Student] = Field(default_factory=list)
     system_logs: List[str] = Field(default_factory=list)
     pending_approvals: List[Dict[str, Any]] = Field(default_factory=list)
 
     def add_log(self, text: str):
-        self.system_logs.append(f"Day {self.day}: {text}")
+        if self.language == "cn":
+            self.system_logs.append(f"第 {self.day} 天: {text}")
+        else:
+            self.system_logs.append(f"Day {self.day}: {text}")
 
     def save(self):
         os.makedirs(os.path.dirname(SAVE_FILE), exist_ok=True)
@@ -52,23 +56,55 @@ class GameState(BaseModel):
                 print(f"Error loading save file: {e}")
         # Default initialization
         state = cls()
-        state.students = [
-            Student(
-                name="Alice",
-                role="Deep Learning Hacker",
-                skills={"research": 0.6, "coding": 0.9, "writing": 0.5},
-            ),
-            Student(
-                name="Bob",
-                role="Theoretical Researcher",
-                skills={"research": 0.9, "coding": 0.4, "writing": 0.9},
-            ),
-            Student(
-                name="Charlie",
-                role="Enthusiastic PhD Intern",
-                skills={"research": 0.5, "coding": 0.6, "writing": 0.6},
-            )
-        ]
-        state.add_log("Lab opened! Welcome back, Professor.")
+        if state.language == "cn":
+            state.students = [
+                Student(
+                    name="Alice",
+                    role="深度学习极客",
+                    skills={"research": 0.6, "coding": 0.9, "writing": 0.5},
+                    status="空闲",
+                    activity="等待指令。"
+                ),
+                Student(
+                    name="Bob",
+                    role="学术理论家",
+                    skills={"research": 0.9, "coding": 0.4, "writing": 0.9},
+                    status="空闲",
+                    activity="等待指令。"
+                ),
+                Student(
+                    name="Charlie",
+                    role="热情的 PhD 实习生",
+                    skills={"research": 0.5, "coding": 0.6, "writing": 0.6},
+                    status="空闲",
+                    activity="等待指令。"
+                )
+            ]
+            state.add_log("实验室正式开张！欢迎回来，教授。")
+        else:
+            state.students = [
+                Student(
+                    name="Alice",
+                    role="Deep Learning Hacker",
+                    skills={"research": 0.6, "coding": 0.9, "writing": 0.5},
+                    status="Idle",
+                    activity="Awaiting instructions."
+                ),
+                Student(
+                    name="Bob",
+                    role="Theoretical Researcher",
+                    skills={"research": 0.9, "coding": 0.4, "writing": 0.9},
+                    status="Idle",
+                    activity="Awaiting instructions."
+                ),
+                Student(
+                    name="Charlie",
+                    role="Enthusiastic PhD Intern",
+                    skills={"research": 0.5, "coding": 0.6, "writing": 0.6},
+                    status="Idle",
+                    activity="Awaiting instructions."
+                )
+            ]
+            state.add_log("Lab opened! Welcome back, Professor.")
         state.save()
         return state

@@ -19,6 +19,107 @@ const CONFERENCES = [
   { name: "EMNLP (Specialized)", difficulty: "Medium" }
 ];
 
+const TRANSLATIONS = {
+  cn: {
+    title: "教授模拟器",
+    subtitle: "大模型智能科研实验室",
+    budget: "实验室经费 (USD)",
+    reputation: "实验室声望",
+    simDay: "模拟天数",
+    activeProject: "当前进行中课题",
+    noProject: "暂无进行中的项目。请在办公室启动一个新项目。",
+    nextDay: "推进到下一天 ➔",
+    simulating: "模拟中...",
+    resetSim: "重置模拟 ↺",
+    tabOffice: "👥 办公室 & 实验室",
+    tabMeeting: "💬 学术组会",
+    tabReview: "📄 论文评审与文档",
+    launchTitle: "启动新科研项目",
+    launchDesc: "输入您的学术研究课题，或选择以下一个热门方向，指派给您的 PhD 学生开展研究。",
+    trendingTitle: "选择热门研究方向：",
+    customTitle: "或者输入完全自定义课题：",
+    launchBtn: "启动课题",
+    placeholderCustom: "例如：在卷积骨干网络中应用低秩适配器(LoRA)...",
+    studentsTitle: "科研团队 (PhD 学生)",
+    workspaceTitle: "的工作区与思维流",
+    monologueTitle: "内心独白 / 运行日志",
+    emptyThoughts: "今天还没有记录任何想法。点击“推进到下一天”开始工作。",
+    piGuidance: "导师直接指示",
+    guidanceDesc: "直接向该学生发布具体指导意见，该反馈会合并入学生的下一步推理记忆中。",
+    placeholderIntervene: "输入指示（例如：“专注于检索包含开源代码的 ArXiv 论文”）",
+    sendInstruction: "发送指示",
+    meetingTitle: "实验室每周组会",
+    meetingDesc: "举行课题讨论和工作汇报。输入您的指导意见，PhD 学生们会根据自身专长进行发言，并开展跨角色角色讨论。",
+    chatPlaceholder: "向团队提问：例如“我们如何解决沙箱中出现的数值发散问题？”",
+    chatSend: "发送至组会",
+    reviewRequired: "⚠️ 关键节点评审",
+    reviewDesc: "学生已经完成了开题报告草拟（附带沙箱代码）。请审核，若满意可批准进入实验阶段。",
+    approveBtn: "批准立项 ✓",
+    rejectBtn: "驳回并要求修改 ✗",
+    placeholderFeedback: "添加指导意见或修改要求...",
+    submitTitle: "🚀 学术论文投稿与盲审",
+    submitDesc: "论文手稿已最终定稿！支付会议注册费并投稿进行同行双盲评审。提交稿件需要支付 $800 会议注册费。",
+    venueLabel: "选择投稿会议：",
+    submitBtn: "提交学术手稿",
+    reviewsTitle: "📬 同行评审报告 (Blind Review)",
+    filesTitle: "工作区生成文件",
+    filesDesc: "以下文件是学生在实验文件夹中真实撰写并编译生成的代码与学术手稿。",
+    emptyFiles: "当前没有生成任何文件。请指导学生开始检索文献。",
+    alertOutFunds: "🚨 经费已耗尽！实验室破产，运营冻结。请重置模拟。",
+    responseIntervene: "的答复",
+    resetConfirm: "确定要重置模拟吗？所有当前的实验室进度和成果都将丢失。"
+  },
+  en: {
+    title: "PI Simulator",
+    subtitle: "Agentic Research Lab",
+    budget: "Budget (USD)",
+    reputation: "Reputation",
+    simDay: "Simulation Day",
+    activeProject: "Active Project",
+    noProject: "No active project. Launch one in the Office.",
+    nextDay: "Next Day ➔",
+    simulating: "Simulating...",
+    resetSim: "Reset Simulation ↺",
+    tabOffice: "👥 Office & Lab Room",
+    tabMeeting: "💬 Group Meeting Room",
+    tabReview: "📄 Drafts & Review",
+    launchTitle: "Launch New Research Project",
+    launchDesc: "Enter a research question or select one of the trending topics to assign to your students.",
+    trendingTitle: "Select a Trending Topic:",
+    customTitle: "Or enter a fully custom topic:",
+    launchBtn: "Launch Project",
+    placeholderCustom: "e.g., Implementing Low-rank adapters for Convolutional backbones...",
+    studentsTitle: "Research Students",
+    workspaceTitle: "'s Workspace & Thought Stream",
+    monologueTitle: "Internal Monologue / Logs",
+    emptyThoughts: "No thoughts recorded yet today. Click \"Next Day\" to begin work.",
+    piGuidance: "PI Direct Instruction",
+    guidanceDesc: "Instruct student directly. This adds feedback directly into their thought context.",
+    placeholderIntervene: "Type guidance (e.g. \"Focus on finding papers with code\")",
+    sendInstruction: "Send Instruction",
+    meetingTitle: "Weekly Group Meeting",
+    meetingDesc: "Conduct research reviews. Type a question or instruction to discuss details. Every active student will comment based on their specialty.",
+    chatPlaceholder: "Ask the group: e.g. 'How should we handle variance in the sandbox?'",
+    chatSend: "Send to Group",
+    reviewRequired: "⚠️ Milestone Review Required",
+    reviewDesc: "Alice has drafted a research proposal including experiment code. Review and approve to start execution.",
+    approveBtn: "Approve Proposal ✓",
+    rejectBtn: "Request Revisions ✗",
+    placeholderFeedback: "Add guidance or revision requests if rejecting...",
+    submitTitle: "🚀 Submit Research Paper",
+    submitDesc: "Your paper draft is finalized. Submit the manuscript for peer review. Submitting costs $800 registration fees.",
+    venueLabel: "Select Target Venue:",
+    submitBtn: "Submit Manuscript",
+    reviewsTitle: "📬 Peer Review Reports",
+    filesTitle: "Lab Workspace Files",
+    filesDesc: "These are files written and compiled inside your lab's directory as your students progress.",
+    emptyFiles: "No files have been written yet. Instruct your students to start literature review.",
+    alertOutFunds: "🚨 Out of funds! Lab operations frozen. Run a reset.",
+    responseIntervene: "'s Response",
+    resetConfirm: "Are you sure you want to reset the simulation? All progress will be lost."
+  }
+};
+
 export default function App() {
   const [state, setState] = useState(null);
   const [error, setError] = useState(null);
@@ -49,6 +150,26 @@ export default function App() {
       }
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const handleLanguageToggle = async () => {
+    if (!state) return;
+    const nextLang = state.language === 'cn' ? 'en' : 'cn';
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/game/set_language`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: nextLang })
+      });
+      if (!res.ok) throw new Error("Language toggle failed");
+      const data = await res.json();
+      setState(data);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -157,14 +278,14 @@ export default function App() {
       if (!res.ok) throw new Error("Intervention failed");
       const data = await res.json();
       setState(data.state);
-      alert(`${studentName}'s Response: "${data.reply}"`);
+      alert(`${studentName}${t.responseIntervene}: "${data.reply}"`);
     } catch (err) {
       alert(err.message);
     }
   };
 
   const handleReset = async () => {
-    if (!window.confirm("Are you sure you want to reset the simulation? All progress will be lost.")) return;
+    if (!window.confirm(t.resetConfirm)) return;
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/game/reset`, { method: 'POST' });
@@ -199,6 +320,9 @@ export default function App() {
     );
   }
 
+  // Active translation set
+  const t = TRANSLATIONS[state.language || 'cn'];
+
   const project = state.current_project;
   const currentStudentObj = state.students.find(s => s.name === selectedStudent);
 
@@ -209,8 +333,8 @@ export default function App() {
         <div className="logo-area">
           <span className="logo-icon">🔬</span>
           <div>
-            <h1>PI Simulator</h1>
-            <span className="subtitle">Agentic Research Lab</span>
+            <h1>{t.title}</h1>
+            <span className="subtitle">{t.subtitle}</span>
           </div>
         </div>
 
@@ -218,43 +342,43 @@ export default function App() {
         <div className="stats-panel">
           <div className="stat-card">
             <div className="stat-header">
-              <span>💰 Budget (USD)</span>
+              <span>{t.budget}</span>
             </div>
             <div className="stat-val">${state.funding.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </div>
           <div className="stat-card">
             <div className="stat-header">
-              <span>🏆 Reputation</span>
+              <span>🏆 {t.reputation}</span>
             </div>
             <div className="stat-val">{state.reputation.toFixed(1)}</div>
           </div>
           <div className="stat-card">
             <div className="stat-header">
-              <span>📅 Simulation Day</span>
+              <span>📅 {t.simDay}</span>
             </div>
-            <div className="stat-val">Day {state.day}</div>
+            <div className="stat-val">{state.language === 'cn' ? `第 ${state.day} 天` : `Day ${state.day}`}</div>
           </div>
         </div>
 
         {/* Project Card */}
         <div className="project-sidebar-card">
-          <h3>Active Project</h3>
+          <h3>{t.activeProject}</h3>
           {project ? (
             <div className="project-info">
               <p className="topic">"{project.topic}"</p>
               <div className="stage-badge">{project.stage}</div>
             </div>
           ) : (
-            <p className="no-project-text">No active project. Launch one in the Office.</p>
+            <p className="no-project-text">{t.noProject}</p>
           )}
         </div>
 
         <div className="sidebar-footer">
           <button onClick={handleTick} className="btn-tick" disabled={loading}>
-            {loading ? "Simulating..." : "Next Day ➔"}
+            {loading ? t.simulating : t.nextDay}
           </button>
           <button onClick={handleReset} className="btn-reset">
-            Reset Simulation ↺
+            {t.resetSim}
           </button>
         </div>
       </aside>
@@ -267,27 +391,32 @@ export default function App() {
               onClick={() => setActiveTab('office')}
               className={`tab-btn ${activeTab === 'office' ? 'active' : ''}`}
             >
-              👥 Office & Lab Room
+              {t.tabOffice}
             </button>
             <button
               onClick={() => setActiveTab('meeting')}
               className={`tab-btn ${activeTab === 'meeting' ? 'active' : ''}`}
             >
-              💬 Group Meeting Room
+              {t.tabMeeting}
             </button>
             <button
               onClick={() => setActiveTab('papers')}
               className={`tab-btn ${activeTab === 'papers' ? 'active' : ''}`}
             >
-              📄 Drafts & Review
+              {t.tabReview}
             </button>
           </div>
-          
-          {!state.funding && (
-            <div className="header-alert warning">
-              🚨 Out of funds! Lab operations frozen. Run a reset.
-            </div>
-          )}
+
+          <div className="header-right-actions">
+            <button onClick={handleLanguageToggle} className="btn-language-toggle">
+              🌐 {state.language === 'cn' ? 'English' : '简体中文'}
+            </button>
+            {!state.funding && (
+              <div className="header-alert warning">
+                {t.alertOutFunds}
+              </div>
+            )}
+          </div>
         </header>
 
         {/* Tabs Area */}
@@ -297,13 +426,13 @@ export default function App() {
             <div className="office-tab">
               {!project || project.status !== "Active" ? (
                 <section className="init-project-section glass-card">
-                  <h2>Launch New Research Project</h2>
+                  <h2>{t.launchTitle}</h2>
                   <p className="info-desc">
-                    Enter a research question or select one of the trending topics to assign to your students.
+                    {t.launchDesc}
                   </p>
                   
                   <div className="trending-topics-list">
-                    <h4>Select a Trending Topic:</h4>
+                    <h4>{t.trendingTitle}</h4>
                     {TRENDING_TOPICS.map((topic, i) => (
                       <button
                         key={i}
@@ -317,11 +446,11 @@ export default function App() {
                   </div>
 
                   <div className="custom-topic-input">
-                    <h4>Or enter a fully custom topic:</h4>
+                    <h4>{t.customTitle}</h4>
                     <div className="input-row">
                       <input
                         type="text"
-                        placeholder="e.g., Implementing Low-rank adapters for Convolutional backbones..."
+                        placeholder={t.placeholderCustom}
                         value={customTopic}
                         onChange={(e) => setCustomTopic(e.target.value)}
                       />
@@ -330,7 +459,7 @@ export default function App() {
                         className="btn-primary"
                         disabled={!customTopic.trim() || loading}
                       >
-                        Launch Project
+                        {t.launchBtn}
                       </button>
                     </div>
                   </div>
@@ -339,17 +468,18 @@ export default function App() {
                 <div className="active-lab-view">
                   {/* Students Grid */}
                   <section className="students-section">
-                    <h2>Research Students</h2>
+                    <h2>{t.studentsTitle}</h2>
                     <div className="students-grid">
                       {state.students.map((student) => {
+                        // Color pills
                         const statusColors = {
-                          "Idle": "idle",
-                          "Resting": "resting",
-                          "Searching ArXiv": "searching",
-                          "Writing Proposal": "proposal",
-                          "Awaiting PI Approval": "approval",
-                          "Experimenting": "experiment",
-                          "Writing Draft": "writing"
+                          "Idle": "idle", "空闲": "idle",
+                          "Resting": "resting", "休息中": "resting",
+                          "Searching ArXiv": "searching", "文献检索": "searching",
+                          "Writing Proposal": "proposal", "撰写开题报告": "proposal",
+                          "Awaiting PI Approval": "approval", "等待教授审批": "approval",
+                          "Experimenting": "experiment", "实验中": "experiment",
+                          "Writing Draft": "writing", "撰写论文": "writing"
                         };
                         const statusClass = statusColors[student.status] || "idle";
                         return (
@@ -367,7 +497,7 @@ export default function App() {
                             <p className="role">{student.role}</p>
 
                             <div className="student-metric">
-                              <span className="label">🔋 Energy</span>
+                              <span className="label">🔋 {state.language === 'cn' ? '精力' : 'Energy'}</span>
                               <div className="progress-bar-container">
                                 <div
                                   className="progress-bar-fill"
@@ -382,21 +512,21 @@ export default function App() {
 
                             <div className="skills-grid">
                               <div className="skill-item">
-                                <span className="label">Research</span>
+                                <span className="label">{state.language === 'cn' ? '研究' : 'Research'}</span>
                                 <span className="val">{(student.skills.research * 10).toFixed(0)}</span>
                               </div>
                               <div className="skill-item">
-                                <span className="label">Coding</span>
+                                <span className="label">{state.language === 'cn' ? '代码' : 'Coding'}</span>
                                 <span className="val">{(student.skills.coding * 10).toFixed(0)}</span>
                               </div>
                               <div className="skill-item">
-                                <span className="label">Writing</span>
+                                <span className="label">{state.language === 'cn' ? '写作' : 'Writing'}</span>
                                 <span className="val">{(student.skills.writing * 10).toFixed(0)}</span>
                               </div>
                             </div>
 
                             <div className="activity">
-                              <strong>Current:</strong> {student.activity}
+                              <strong>{state.language === 'cn' ? '动态' : 'Current'}:</strong> {student.activity}
                             </div>
                           </div>
                         );
@@ -407,13 +537,13 @@ export default function App() {
                   {/* Student Workspace (Logs/Thoughts/Intervention) */}
                   {currentStudentObj && (
                     <section className="student-workspace glass-card">
-                      <h2>{currentStudentObj.name}'s Workspace & Thought Stream</h2>
+                      <h2>{currentStudentObj.name}{t.workspaceTitle}</h2>
                       <div className="workspace-layout">
                         <div className="thought-stream">
-                          <h4>Internal Monologue / Logs</h4>
+                          <h4>{t.monologueTitle}</h4>
                           <div className="logs-box">
                             {currentStudentObj.thoughts.length === 0 ? (
-                              <p className="empty-text">No thoughts recorded yet today. Click "Next Day" to begin work.</p>
+                              <p className="empty-text">{t.emptyThoughts}</p>
                             ) : (
                               currentStudentObj.thoughts.map((thought, idx) => (
                                 <div key={idx} className="log-entry">
@@ -426,14 +556,12 @@ export default function App() {
                         </div>
 
                         <div className="direct-intervention">
-                          <h4>PI Direct Instruction</h4>
-                          <p className="help-text">
-                            Instruct {currentStudentObj.name} directly. This adds feedback directly into their thought context.
-                          </p>
+                          <h4>{t.piGuidance}</h4>
+                          <p className="help-text">{t.guidanceDesc}</p>
                           <div className="input-row">
                             <input
                               type="text"
-                              placeholder={`Type guidance to ${currentStudentObj.name} (e.g. "Focus on finding papers with code")`}
+                              placeholder={t.placeholderIntervene}
                               value={interveneMsg}
                               onChange={(e) => setInterveneMsg(e.target.value)}
                             />
@@ -442,7 +570,7 @@ export default function App() {
                               className="btn-primary"
                               disabled={!interveneMsg.trim()}
                             >
-                              Send Instruction
+                              {t.sendInstruction}
                             </button>
                           </div>
                         </div>
@@ -457,10 +585,8 @@ export default function App() {
           {/* Meeting Room Tab */}
           {activeTab === 'meeting' && (
             <div className="meeting-tab glass-card">
-              <h2>Weekly Group Meeting</h2>
-              <p className="info-desc">
-                Conduct research reviews. Type a question or instruction to discuss details, model parameters, or findings. Every active student will comment based on their specialty.
-              </p>
+              <h2>{t.meetingTitle}</h2>
+              <p className="info-desc">{t.meetingDesc}</p>
 
               <div className="chat-messages-box">
                 {state.meeting_chat.map((msg, i) => {
@@ -483,11 +609,11 @@ export default function App() {
               <form onSubmit={handleGroupChat} className="chat-form">
                 <input
                   type="text"
-                  placeholder="Ask the group: e.g. 'How should we handle variance in the sandbox?'"
+                  placeholder={t.chatPlaceholder}
                   value={chatMsg}
                   onChange={(e) => setChatMsg(e.target.value)}
                 />
-                <button type="submit" className="btn-primary">Send to Group</button>
+                <button type="submit" className="btn-primary">{t.chatSend}</button>
               </form>
             </div>
           )}
@@ -498,7 +624,7 @@ export default function App() {
               {/* Approvals Gate */}
               {state.pending_approvals && state.pending_approvals.length > 0 && (
                 <div className="review-alert-card glass-card">
-                  <h3>⚠️ Milestone Review Required</h3>
+                  <h3>{t.reviewRequired}</h3>
                   <div className="approval-content">
                     <h4>{state.pending_approvals[0].title}</h4>
                     <p>{state.pending_approvals[0].description}</p>
@@ -510,7 +636,7 @@ export default function App() {
                   <div className="feedback-section">
                     <input
                       type="text"
-                      placeholder="Add guidance or revision requests if rejecting..."
+                      placeholder={t.placeholderFeedback}
                       value={feedbackMsg}
                       onChange={(e) => setFeedbackMsg(e.target.value)}
                     />
@@ -520,14 +646,14 @@ export default function App() {
                         className="btn-success"
                         disabled={loading}
                       >
-                        Approve Proposal ✓
+                        {t.approveBtn}
                       </button>
                       <button
                         onClick={() => handleApproveProposal('reject')}
                         className="btn-danger"
                         disabled={loading}
                       >
-                        Request Revisions ✗
+                        {t.rejectBtn}
                       </button>
                     </div>
                   </div>
@@ -535,16 +661,14 @@ export default function App() {
               )}
 
               {/* Submission Gate */}
-              {project && project.stage === "Awaiting Submission" && (
+              {project && (project.stage === "Awaiting Submission" || project.stage === "等待提交投稿") && (
                 <div className="submission-card glass-card">
-                  <h3>🚀 Submit Research Paper</h3>
-                  <p className="info-desc">
-                    Your paper draft is finalized. Submit the manuscript for peer review. Submitting costs <strong>$800</strong> registration fees.
-                  </p>
+                  <h3>{t.submitTitle}</h3>
+                  <p className="info-desc">{t.submitDesc}</p>
                   
                   <div className="submission-row">
                     <div className="conf-select">
-                      <label>Select Target Venue:</label>
+                      <label>{t.venueLabel}</label>
                       <select
                         value={selectedConf}
                         onChange={(e) => setSelectedConf(e.target.value)}
@@ -555,7 +679,7 @@ export default function App() {
                       </select>
                     </div>
                     <button onClick={handleSubmitPaper} className="btn-primary-large" disabled={loading}>
-                      Submit Manuscript
+                      {t.submitBtn}
                     </button>
                   </div>
                 </div>
@@ -564,7 +688,7 @@ export default function App() {
               {/* Peer Review Output */}
               {project && project.reviews && (
                 <div className="reviews-card glass-card">
-                  <h3>📬 Peer Review Reports</h3>
+                  <h3>{t.reviewsTitle}</h3>
                   <div className="reviews-list">
                     {project.reviews.map((rev, i) => (
                       <div key={i} className="review-report">
@@ -578,10 +702,8 @@ export default function App() {
               {/* Files Viewer */}
               {project ? (
                 <div className="workspace-files glass-card">
-                  <h2>Lab Workspace Files</h2>
-                  <p className="info-desc">
-                    These are files written and compiled inside your lab's directory as your students progress.
-                  </p>
+                  <h2>{t.filesTitle}</h2>
+                  <p className="info-desc">{t.filesDesc}</p>
 
                   <div className="files-layout">
                     {project.proposal_draft && (
@@ -604,7 +726,7 @@ export default function App() {
 
                     {project.paper_draft && (
                       <div className="file-section">
-                        <h4>📝 paper.md (Manuscript Draft)</h4>
+                        <h4>📝 paper.md</h4>
                         <div className="file-viewer">
                           <pre>{project.paper_draft}</pre>
                         </div>
@@ -612,13 +734,13 @@ export default function App() {
                     )}
 
                     {!project.proposal_draft && !project.experiment_results && !project.paper_draft && (
-                      <p className="empty-text">No files have been written yet. Instruct your students to start literature review.</p>
+                      <p className="empty-text">{t.emptyFiles}</p>
                     )}
                   </div>
                 </div>
               ) : (
                 <div className="glass-card">
-                  <p className="empty-text">Launch a project to see research documents here.</p>
+                  <p className="empty-text">{t.noProject}</p>
                 </div>
               )}
             </div>
@@ -628,7 +750,7 @@ export default function App() {
 
       {/* Global Logs Panel */}
       <section className="global-logs-panel glass-card">
-        <h3>📢 Lab Event Logs</h3>
+        <h3>📢 {state.language === 'cn' ? '实验室事件日志' : 'Lab Event Logs'}</h3>
         <div className="logs-stream">
           {state.system_logs.map((log, index) => (
             <div key={index} className="log-line">

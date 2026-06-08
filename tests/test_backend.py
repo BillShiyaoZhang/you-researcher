@@ -39,15 +39,23 @@ class TestProfessorSimulator(unittest.TestCase):
 
     def test_mock_llm(self):
         print("Testing LLM Fallback Call...")
-        # Since we use placeholder key, this should return mock template response
-        resp = call_llm("You are Alice", "Write a proposal about topic: attention mechanisms")
-        self.assertIn("Proposal", resp)
-        self.assertIn("Experiment", resp)
+        from unittest.mock import patch
+        with patch("app.agent_manager.get_llm_client", return_value=None):
+            # Test English mock
+            resp_en = call_llm("You are Alice", "Write a proposal about topic: attention mechanisms", language="en")
+            self.assertIn("Proposal", resp_en)
+            self.assertIn("Experiment", resp_en)
+            
+            # Test Chinese mock
+            resp_cn = call_llm("You are Alice", "Write a proposal about topic: attention mechanisms", language="cn")
+            self.assertIn("开题报告", resp_cn)
+            self.assertIn("实验", resp_cn)
         print("LLM Mock Response verified successfully.")
 
     def test_game_state_flow(self):
         print("Testing Game State transitions...")
         state = GameState()
+        state.language = "en"
         # Initialize some students
         state.students = [
             Student(name="Alice", role="Deep Learning Hacker", skills={"research": 0.6, "coding": 0.9, "writing": 0.5}),

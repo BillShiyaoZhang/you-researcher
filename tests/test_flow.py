@@ -1,9 +1,11 @@
 from fastapi.testclient import TestClient
 import os
 import shutil
+from unittest.mock import patch
 from app.main import app
 
-def test_full_gameplay_flow():
+@patch("app.agent_manager.get_llm_client", return_value=None)
+def test_full_gameplay_flow(mock_get_client):
     print("Initializing TestClient and cleaning workspace...")
     client = TestClient(app)
     
