@@ -1,9 +1,30 @@
 import json
 import os
+import time
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 
 SAVE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "save_state.json")
+
+class LLMConfig(BaseModel):
+    provider: str = "openai" # openai, minimax, deepseek, siliconflow, custom
+    api_key: str = ""
+    base_url: str = ""
+    model: str = "gpt-3.5-turbo"
+
+class ChatMessage(BaseModel):
+    id: str
+    sender: str
+    role: str
+    message: str
+    timestamp: float = Field(default_factory=time.time)
+
+class ChatChannel(BaseModel):
+    id: str
+    name: str
+    members: List[str]
+    messages: List[ChatMessage] = Field(default_factory=list)
+    unread: bool = False
 
 class Student(BaseModel):
     name: str
@@ -34,6 +55,14 @@ class GameState(BaseModel):
     students: List[Student] = Field(default_factory=list)
     system_logs: List[str] = Field(default_factory=list)
     pending_approvals: List[Dict[str, Any]] = Field(default_factory=list)
+    
+    # New configurations
+    llm_config: LLMConfig = Field(default_factory=LLMConfig)
+    autonomous_mode: bool = False
+    max_cost_limit: float = 10.0
+    session_cost: float = 0.0
+    funding_mode: str = "simulated" # real or simulated
+    channels: List[ChatChannel] = Field(default_factory=list)
 
     def add_log(self, text: str):
         if self.language == "cn":
@@ -107,5 +136,28 @@ class GameState(BaseModel):
                 )
             ]
             state.add_log("Lab opened! Welcome back, Professor.")
+            
+        # Initialize default channels
+        is_cn = (state.language == "cn")
+        state.channels = [
+            ChatChannel(
+                id="group",
+                name="实验室群聊" if is_cn else "Lab Group Chat",
+                members=["Alice", "Bob", "Charlie", "PI"],
+                messages=[
+                    ChatMessage(
+                        id="init_msg",
+                        sender="System",
+                        role="Moderator",
+                        message="学术交流通道已建立。欢迎各位！" if is_cn else "Research channel established. Welcome everyone!",
+                        timestamp=time.time()
+                    )
+                ]
+            ),
+            ChatChannel(id="alice", name="Alice (私聊)" if is_cn else "Alice (Private)", members=["Alice", "PI"]),
+            ChatChannel(id="bob", name="Bob (私聊)" if is_cn else "Bob (Private)", members=["Bob", "PI"]),
+            ChatChannel(id="charlie", name="Charlie (私聊)" if is_cn else "Charlie (Private)", members=["Charlie", "PI"])
+        ]
+        
         state.save()
         return state

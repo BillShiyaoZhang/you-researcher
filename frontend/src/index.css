@@ -1248,3 +1248,362 @@ body {
 .comment-input-area button {
   align-self: flex-end;
 }
+
+/* Chat & Contacts Channel Room Styles */
+.unread-dot-badge {
+  background: var(--color-danger);
+  color: white;
+  font-size: 0.6rem;
+  padding: 2px 6px;
+  border-radius: 50%;
+  margin-left: 6px;
+}
+
+.count-badge {
+  background: var(--accent-color);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+.channels-room {
+  height: 580px;
+  overflow: hidden;
+  padding: 0 !important;
+}
+
+.channels-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  height: 100%;
+}
+
+.contacts-sidebar {
+  border-right: 1px solid var(--glass-border);
+  background: rgba(10, 12, 18, 0.4);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contacts-sidebar h3 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(255,255,255,0.01);
+  border: 1px solid transparent;
+}
+
+.contact-item:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.contact-item.active {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: #fff;
+}
+
+.contact-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-danger);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--color-danger);
+}
+
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: rgba(0,0,0,0.15);
+}
+
+.chat-window-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--glass-border);
+  background: rgba(10, 12, 18, 0.3);
+}
+
+.chat-window-header h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.empty-chat-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Student Workspace Files */
+.student-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.student-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.student-file-item:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.file-comment-indicator {
+  font-size: 0.7rem;
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+/* Workspace Layout Adjustments */
+.workspace-files-column {
+  border-right: 1px solid var(--glass-border);
+  padding-right: 16px;
+}
+
+/* Settings Modal Specific */
+.settings-modal {
+  max-width: 500px;
+  height: auto;
+  max-height: 85vh;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.form-group select, .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="password"] {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  color: white;
+  padding: 10px;
+  font-size: 0.9rem;
+}
+
+.form-group select:focus, .form-group input:focus {
+  outline: 1px solid var(--accent-color);
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.checkbox-group {
+  flex-direction: row !important;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(255,255,255,0.01);
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px dashed var(--glass-border);
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.checkbox-group input {
+  margin-top: 3px;
+  cursor: pointer;
+}
+
+.form-group .help-text {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Billing Mode Badge */
+.billing-badge {
+  font-size: 0.65rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+.billing-badge.simulated {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+}
+
+.billing-badge.real {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+
+.text-orange {
+  color: #ffa726 !important;
+}
+
+/* Approvals Hub Layout */
+.approvals-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.approval-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: 8px;
+}
+
+.approval-badge-type {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  background: var(--glass-border);
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.approval-actions-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.approval-actions-form input {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  color: white;
+  padding: 10px;
+  font-size: 0.85rem;
+}
+
+.approval-actions-form input:focus {
+  outline: 1px solid var(--accent-color);
+}
+
+.venue-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.venue-row select {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  color: white;
+  padding: 10px;
+  font-size: 0.9rem;
+}
+
+/* Global Workspace Explorer Owner Badge */
+.student-owner-badge {
+  font-size: 0.65rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+/* Connection Message Boxes */
+.connection-message-box.testing {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+.connection-message-box.success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+}
+.connection-message-box.warning {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fde047;
+}
+.connection-message-box.error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
