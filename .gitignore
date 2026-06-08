@@ -1,0 +1,19 @@
+# Virtual Environments & Environments
+.venv/
+.env
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Project Output & Sandbox directories
+data/
+workspace/
+sandbox_env/
+test_run_env/
+
+# OS Files
+.DS_Store
+Thumbs.db
