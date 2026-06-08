@@ -23,9 +23,10 @@ class Project(BaseModel):
     paper_draft: Optional[str] = None
     reviews: Optional[List[str]] = None
     status: str = "Active"
+    file_comments: Dict[str, List[str]] = Field(default_factory=dict)
 
 class GameState(BaseModel):
-    funding: float = 10000.0
+    funding: float = 500000.0
     reputation: float = 0.0
     day: int = 1
     language: str = "cn"  # cn or en

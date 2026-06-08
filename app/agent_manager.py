@@ -24,7 +24,18 @@ def get_llm_client() -> Optional[OpenAI]:
         print(f"Error creating OpenAI client: {e}")
         return None
 
-def call_llm(system_prompt: str, user_prompt: str, language: str = "cn") -> str:
+def call_llm(system_prompt: str, user_prompt: str, language: str = "cn", game_state: Optional[GameState] = None, caller_name: Optional[str] = None) -> str:
+    if game_state:
+        game_state.funding = max(0.0, game_state.funding - 50.0)
+        is_chinese = (game_state.language == "cn")
+        caller = f"{caller_name} " if caller_name else ""
+        game_state.add_log(
+            f"[经费支出] {caller}调用大语言模型，消耗 ¥50.00"
+            if is_chinese else
+            f"[Expense] {caller}called LLM API, cost ¥50.00"
+        )
+        game_state.save()
+
     client = get_llm_client()
     if client is None:
         return get_mock_llm_response(system_prompt, user_prompt, language=language)
@@ -266,7 +277,7 @@ Personality: Very eager to learn, asks lots of questions, highly motivated, but 
 You will assist on any task.""",
 }
 
-def run_literature_review(student: Student, project: Project, language: str = "cn") -> str:
+def run_literature_review(student: Student, project: Project, language: str = "cn", game_state: Optional[GameState] = None) -> str:
     """
     Executes ArXiv search using the real tool and synthesizes a literature review.
     """
@@ -301,19 +312,27 @@ I found the following papers on ArXiv:
 
 Write a structured literature review in markdown (3-4 paragraphs). Identify key trends, open issues, and outline a proposed next direction for our lab."""
     
+    # Inject comments if any exist for literature_review.md
+    comments = project.file_comments.get("literature_review.md", []) if project.file_comments else []
+    if comments:
+        comments_text = "\n\n教授对文献综述的修改意见，请务必包含/参考这些修改要求：\n" if is_chinese else "\n\nProfessor's feedback on the literature review (please address these requirements):\n"
+        for c in comments:
+            comments_text += f"- {c}\n"
+        user_prompt += comments_text
+
     student.thoughts.append(
         f"正在检索关于 '{project.topic}' 的文献。找到 {len(papers)} 篇论文。开始合成中..." 
         if is_chinese else 
         f"Searching ArXiv for '{project.topic}'. Found {len(papers)} papers. Now synthesizing..."
     )
     
-    review = call_llm(sys_prompt, user_prompt, language=language)
+    review = call_llm(sys_prompt, user_prompt, language=language, game_state=game_state, caller_name=student.name)
     student.thoughts.append("文献综述草稿已完成。" if is_chinese else "Finished literature review draft.")
     student.status = "空闲" if is_chinese else "Idle"
     student.activity = "已完成文献综述合成。" if is_chinese else "Finished literature review synthesis."
     return review
 
-def run_proposal_drafting(student: Student, project: Project, language: str = "cn") -> str:
+def run_proposal_drafting(student: Student, project: Project, language: str = "cn", game_state: Optional[GameState] = None) -> str:
     """
     Drafts a formal research proposal with an implementation script code block.
     """
@@ -351,15 +370,23 @@ Format the code block as:
 # code here
 ```
 """
+
+    # Inject comments if any exist for proposal.md
+    comments = project.file_comments.get("proposal.md", []) if project.file_comments else []
+    if comments:
+        comments_text = "\n\n教授对开题报告的批注和意见，请务必在撰写中加以修改：\n" if is_chinese else "\n\nProfessor's feedback on the proposal (please address these requirements):\n"
+        for c in comments:
+            comments_text += f"- {c}\n"
+        user_prompt += comments_text
     
     student.thoughts.append("正在撰写开题报告，正在设计实验验证代码..." if is_chinese else "Drafting proposal. Designing the experiment script...")
-    proposal = call_llm(sys_prompt, user_prompt, language=language)
+    proposal = call_llm(sys_prompt, user_prompt, language=language, game_state=game_state, caller_name=student.name)
     student.thoughts.append("开题报告撰写完成。已提交给教授评审。" if is_chinese else "Finished proposal draft with code. Awaiting PI review.")
     student.status = "等待教授审批" if is_chinese else "Awaiting PI Approval"
     student.activity = "等待教授审核开题报告。" if is_chinese else "Awaiting Professor's review of the proposal."
     return proposal
 
-def run_experimentation(student: Student, project: Project, workspace_dir: str, language: str = "cn") -> Dict[str, Any]:
+def run_experimentation(student: Student, project: Project, workspace_dir: str, language: str = "cn", game_state: Optional[GameState] = None) -> Dict[str, Any]:
     """
     Extracts the python script from the proposal, runs it in the sandbox,
     and returns logs. If it fails, attempts self-debugging up to 2 times.
@@ -397,6 +424,16 @@ print("Completed successfully!")
         student.activity = f"运行沙箱实验（第 {attempt} 次尝试）..." if is_chinese else f"Running sandbox experiment (Attempt {attempt})..."
         student.thoughts.append(f"正在启动沙箱子进程（第 {attempt} 次尝试）..." if is_chinese else f"Running code sandbox (Attempt {attempt})...")
         
+        # Deduct ¥200 for sandbox execution
+        if game_state:
+            game_state.funding = max(0.0, game_state.funding - 200.0)
+            game_state.add_log(
+                f"[经费支出] {student.name} 运行沙箱实验，消耗 ¥200.00"
+                if is_chinese else
+                f"[Expense] {student.name} executed sandbox experiment, cost ¥200.00"
+            )
+            game_state.save()
+
         sandbox_result = execute_python_code(code_block, workspace_dir)
         exit_code = sandbox_result.get("exit_code", -1)
         stdout = sandbox_result.get("stdout", "")
@@ -438,8 +475,16 @@ Stderr: {stderr}
 Stdout: {stdout}
 
 Rewrite the script to fix the bugs. Make sure it is fully runnable in a basic python sandbox. Output ONLY the updated python script code block."""
-                
-            debugged_code = call_llm(sys_prompt, debug_prompt, language=language)
+            
+            # Inject comments for experiment.py if any exist
+            comments = project.file_comments.get("experiment.py", []) if project.file_comments else []
+            if comments:
+                comments_text = "\n另外，导师留下了关于实验脚本的额外指导，请一并修复解决：\n" if is_chinese else "\nAlso, the Professor left additional comments on the experiment script to address:\n"
+                for c in comments:
+                    comments_text += f"- {c}\n"
+                debug_prompt += comments_text
+
+            debugged_code = call_llm(sys_prompt, debug_prompt, language=language, game_state=game_state, caller_name=student.name)
             if "```python" in debugged_code:
                 code_block = debugged_code.split("```python")[1].split("```")[0]
             else:
@@ -462,7 +507,7 @@ Stdout: {sandbox_result.get('stdout')}
 Stderr: {sandbox_result.get('stderr')}
 Exit Code: {sandbox_result.get('exit_code')}"""
     
-    results_summary = call_llm(sys_prompt, summary_prompt, language=language)
+    results_summary = call_llm(sys_prompt, summary_prompt, language=language, game_state=game_state, caller_name=student.name)
     
     if is_chinese:
         project.experiment_results = f"### 沙箱运行日志：\n```\n{sandbox_result.get('stdout')}\n```\n\n### 实验总结：\n{results_summary}"
@@ -471,7 +516,7 @@ Exit Code: {sandbox_result.get('exit_code')}"""
     
     return sandbox_result
 
-def run_paper_drafting(student: Student, project: Project, language: str = "cn") -> str:
+def run_paper_drafting(student: Student, project: Project, language: str = "cn", game_state: Optional[GameState] = None) -> str:
     """
     Drafts the final academic paper.
     """
@@ -497,13 +542,21 @@ Here are the project inputs:
 
 Write a complete academic research paper in markdown. It should contain Title, Abstract, Introduction, Methodology, Experiments, and Conclusion sections. Format the mathematical formulas and keep it highly professional."""
 
-    paper = call_llm(sys_prompt, user_prompt, language=language)
+    # Inject comments if any exist for paper.md
+    comments = project.file_comments.get("paper.md", []) if project.file_comments else []
+    if comments:
+        comments_text = "\n\n教授对学术论文的修改意见，请务必在撰写中加以修改：\n" if is_chinese else "\n\nProfessor's feedback on the paper (please address these requirements):\n"
+        for c in comments:
+            comments_text += f"- {c}\n"
+        user_prompt += comments_text
+
+    paper = call_llm(sys_prompt, user_prompt, language=language, game_state=game_state, caller_name=student.name)
     student.thoughts.append("论文初稿撰写完毕！可以准备向学术会议投稿了。" if is_chinese else "Paper draft completed! Ready for conference submission.")
     student.status = "空闲" if is_chinese else "Idle"
     student.activity = "完成论文撰写。" if is_chinese else "Paper writing completed."
     return paper
 
-def run_group_discussion(students: List[Student], history: List[Dict[str, str]], user_msg: str, language: str = "cn") -> List[Dict[str, str]]:
+def run_group_discussion(students: List[Student], history: List[Dict[str, str]], user_msg: str, language: str = "cn", game_state: Optional[GameState] = None) -> List[Dict[str, str]]:
     """
     Simulates a group discussion where student agents discuss in response to the user.
     """
@@ -529,7 +582,7 @@ def run_group_discussion(students: List[Student], history: List[Dict[str, str]],
 {chat_context}
 Provide your next response in the meeting (in English, keeping to your student profile, 1-2 sentences)."""
         
-        reply = call_llm(sys_prompt, prompt, language=language)
+        reply = call_llm(sys_prompt, prompt, language=language, game_state=game_state, caller_name=student.name)
         student.energy = max(0, student.energy - 5)
         new_replies.append({
             "sender": student.name,

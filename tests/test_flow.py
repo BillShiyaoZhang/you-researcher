@@ -12,10 +12,12 @@ def test_full_gameplay_flow(mock_get_client):
     # 1. Reset game state
     response = client.post("/api/game/reset")
     assert response.status_code == 200, f"Reset failed: {response.text}"
+    response = client.post("/api/game/set_language", json={"language": "en"})
+    assert response.status_code == 200
     state = response.json()
     assert state["day"] == 1
     assert state["current_project"] is None
-    print("Step 1: Reset Game State verified.")
+    print("Step 1: Reset Game State and Language set to English verified.")
     
     # 2. Start project
     topic = "Parameter-efficient tuning via Sparse Weight Masking"

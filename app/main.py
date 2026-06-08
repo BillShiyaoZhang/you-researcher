@@ -13,7 +13,9 @@ from app.agent_manager import (
     run_proposal_drafting, 
     run_experimentation, 
     run_paper_drafting,
-    run_group_discussion
+    run_group_discussion,
+    SYSTEM_PROMPTS,
+    call_llm
 )
 
 app = FastAPI(title="Professor Simulator API")
@@ -60,6 +62,75 @@ class SubmissionInput(BaseModel):
 
 class LanguageInput(BaseModel):
     language: str
+
+class CommentInput(BaseModel):
+    filename: str
+    comment: str
+
+@app.get("/api/game/files")
+def get_workspace_files():
+    files = []
+    # Possible files we track:
+    expected_files = [
+        {"name": "literature_review.md", "type": "markdown", "displayName": "文献综述 / Literature Review"},
+        {"name": "proposal.md", "type": "markdown", "displayName": "开题报告 / Research Proposal"},
+        {"name": "experiment.py", "type": "python", "displayName": "实验脚本 / Experiment Script"},
+        {"name": "paper.md", "type": "markdown", "displayName": "学术论文 / Research Paper"}
+    ]
+    
+    project = game_state.current_project
+    comments_map = project.file_comments if project else {}
+    
+    for f_info in expected_files:
+        filename = f_info["name"]
+        filepath = os.path.join(WORKSPACE_DIR, filename)
+        exists = os.path.exists(filepath)
+        content = ""
+        if exists:
+            try:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    content = f.read()
+            except Exception as e:
+                content = f"Error reading file: {str(e)}"
+        
+        comments = comments_map.get(filename, [])
+        files.append({
+            "name": filename,
+            "displayName": f_info["displayName"],
+            "type": f_info["type"],
+            "exists": exists,
+            "content": content,
+            "comments": comments
+        })
+    return files
+
+@app.post("/api/game/comment")
+def add_file_comment(data: CommentInput):
+    global game_state
+    project = game_state.current_project
+    if not project or project.status != "Active":
+        raise HTTPException(
+            status_code=400,
+            detail="No active project to comment on." if game_state.language == "en" else "当前没有进行中的项目可以发表评论。"
+        )
+    
+    filename = data.filename
+    if filename not in ["literature_review.md", "proposal.md", "experiment.py", "paper.md"]:
+        raise HTTPException(status_code=400, detail="Invalid filename.")
+        
+    if filename not in project.file_comments:
+        project.file_comments[filename] = []
+        
+    project.file_comments[filename].append(data.comment)
+    
+    is_chinese = (game_state.language == "cn")
+    game_state.add_log(
+        f"导师对文件 {filename} 发表了批注：'{data.comment}'" 
+        if is_chinese else 
+        f"PI added an annotation on {filename}: '{data.comment}'"
+    )
+    game_state.save()
+    return {"status": "ok", "comments": project.file_comments[filename]}
 
 @app.get("/api/game/state")
 def get_state():
@@ -164,14 +235,16 @@ def game_tick():
     game_state.day += 1
     is_chinese = (game_state.language == "cn")
     
-    # Daily costs
-    daily_cost = 150.0 + (len(game_state.students) * 50.0)
+    # Daily costs: Base office overhead ¥100 + Student stipends (¥8,000/month per student, i.e., ¥266.67/student/day)
+    base_cost = 100.0
+    student_cost = len(game_state.students) * 266.67
+    daily_cost = base_cost + student_cost
     game_state.funding = max(0.0, game_state.funding - daily_cost)
     
     game_state.add_log(
-        f"每日实验室运营开支：${daily_cost:.2f}" 
+        f"每日基本实验室运营开支 (房租水电 ¥{base_cost:.2f} + 学生补贴 ¥{student_cost:.2f})：¥{daily_cost:.2f}" 
         if is_chinese else 
-        f"Daily operational expenses: ${daily_cost:.2f}"
+        f"Daily basic lab operating expenses (Office ¥{base_cost:.2f} + Student stipends ¥{student_cost:.2f}): ¥{daily_cost:.2f}"
     )
     
     if game_state.funding <= 0:
@@ -207,7 +280,7 @@ def game_tick():
         else:
             bob.energy = max(0, bob.energy - 30)
             try:
-                review_text = run_literature_review(bob, project, language=game_state.language)
+                review_text = run_literature_review(bob, project, language=game_state.language, game_state=game_state)
                 project.proposal_draft = review_text
                 
                 # Write to workspace file
@@ -215,6 +288,10 @@ def game_tick():
                     f.write(review_text)
                     
                 project.stage = "Proposal"
+                # Clear comments on literature_review.md as it has been updated
+                if "literature_review.md" in project.file_comments:
+                    project.file_comments["literature_review.md"] = []
+
                 game_state.add_log(
                     "Bob 完成了文献检索与综述。文件已保存至 workspace/literature_review.md" 
                     if is_chinese else 
@@ -241,7 +318,7 @@ def game_tick():
         else:
             alice.energy = max(0, alice.energy - 30)
             try:
-                proposal_text = run_proposal_drafting(alice, project, language=game_state.language)
+                proposal_text = run_proposal_drafting(alice, project, language=game_state.language, game_state=game_state)
                 project.proposal_draft = proposal_text
                 
                 with open(os.path.join(WORKSPACE_DIR, "proposal.md"), "w", encoding="utf-8") as f:
@@ -263,6 +340,10 @@ def game_tick():
                         "content": proposal_text
                     })
                 project.stage = "Awaiting Proposal Approval"
+                # Clear comments on proposal.md as it has been updated
+                if "proposal.md" in project.file_comments:
+                    project.file_comments["proposal.md"] = []
+
                 game_state.add_log(
                     "Alice 完成了开题报告初稿。等待教授（PI）审核中。" 
                     if is_chinese else 
@@ -283,7 +364,7 @@ def game_tick():
         else:
             alice.energy = max(0, alice.energy - 40)
             try:
-                sandbox_result = run_experimentation(alice, project, SANDBOX_DIR, language=game_state.language)
+                sandbox_result = run_experimentation(alice, project, SANDBOX_DIR, language=game_state.language, game_state=game_state)
                 exit_code = sandbox_result.get("exit_code", -1)
                 
                 if os.path.exists(os.path.join(SANDBOX_DIR, "experiment.py")):
@@ -291,6 +372,10 @@ def game_tick():
                     
                 if exit_code == 0:
                     project.stage = "Paper Writing"
+                    # Clear comments on experiment.py as it ran successfully
+                    if "experiment.py" in project.file_comments:
+                        project.file_comments["experiment.py"] = []
+
                     game_state.add_log(
                         "Alice 完成了沙箱实验，退出码 0。实验代码已同步至 workspace/experiment.py" 
                         if is_chinese else 
@@ -323,13 +408,17 @@ def game_tick():
         else:
             bob.energy = max(0, bob.energy - 35)
             try:
-                paper_text = run_paper_drafting(bob, project, language=game_state.language)
+                paper_text = run_paper_drafting(bob, project, language=game_state.language, game_state=game_state)
                 project.paper_draft = paper_text
                 
                 with open(os.path.join(WORKSPACE_DIR, "paper.md"), "w", encoding="utf-8") as f:
                     f.write(paper_text)
                     
                 project.stage = "Awaiting Submission"
+                # Clear comments on paper.md as draft is ready
+                if "paper.md" in project.file_comments:
+                    project.file_comments["paper.md"] = []
+
                 game_state.add_log(
                     "Bob 完成了论文撰写。论文草稿已保存至 workspace/paper.md，准备提交会议投稿。" 
                     if is_chinese else 
@@ -420,11 +509,19 @@ def submit_paper(data: SubmissionInput):
             detail="No paper is ready for submission." if game_state.language == "en" else "当前没有待提交的论文草稿。"
         )
         
-    reg_fee = 800.0
+    # Conference registration fee mapping in RMB
+    conf_fees = {
+        "NeurIPS": 6800.0,
+        "ICML": 6500.0,
+        "CVPR": 6800.0,
+        "EMNLP": 5800.0
+    }
+    reg_fee = conf_fees.get(data.conference, 6000.0)
+    
     if game_state.funding < reg_fee:
         raise HTTPException(
             status_code=400, 
-            detail="Insufficient funding to register/submit paper." if game_state.language == "en" else "经费不足，无法支付会议注册费。"
+            detail=f"Insufficient funding (Requires ¥{reg_fee:.2f}) to submit paper." if game_state.language == "en" else f"经费不足，无法支付会议注册费（需要 ¥{reg_fee:.2f}）。"
         )
     
     game_state.funding -= reg_fee
@@ -439,7 +536,7 @@ def submit_paper(data: SubmissionInput):
     
     reviews = []
     if score >= 7.5:
-        funding_reward = 8000.0
+        funding_reward = 100000.0
         rep_reward = 15.0
         if is_chinese:
             reviews = [
@@ -458,9 +555,9 @@ def submit_paper(data: SubmissionInput):
         project.status = "Completed"
         project.stage = "Completed (Accepted)" if game_state.language == "en" else "已结束 (录用)"
         game_state.add_log(
-            f"🎉 祝贺！我们的论文被 {data.conference} 正式录用！荣获了 ${funding_reward} 经费支持和 +{rep_reward} 声望值！" 
+            f"🎉 祝贺！我们的论文被 {data.conference} 正式录用！荣获了 ¥{funding_reward:.2f} 经费支持和 +{rep_reward} 声望值！" 
             if is_chinese else 
-            f"CONGRATULATIONS! Our paper was ACCEPTED at {data.conference}! Won a ${funding_reward} grant and +{rep_reward} Reputation!"
+            f"CONGRATULATIONS! Our paper was ACCEPTED at {data.conference}! Won a ¥{funding_reward:.2f} grant and +{rep_reward} Reputation!"
         )
     else:
         if is_chinese:
@@ -505,7 +602,7 @@ def group_chat(data: ChatInput):
     # Trigger agents to reply
     is_chinese = (game_state.language == "cn")
     active_students = [s for s in game_state.students if s.status != ("休息中" if is_chinese else "Resting")]
-    replies = run_group_discussion(active_students, meeting_chat[:-1], data.message, language=game_state.language)
+    replies = run_group_discussion(active_students, meeting_chat[:-1], data.message, language=game_state.language, game_state=game_state)
     
     for r in replies:
         meeting_chat.append(r)
@@ -534,7 +631,7 @@ def intervene(data: InterveneInput):
         f"\nYou are responding directly to a private message from your Professor. Your status is: {student.status}."
     )
     
-    reply = call_llm(sys_prompt, f"Professor private message: '{data.message}'\nReply in character (1-2 sentences).", language=game_state.language)
+    reply = call_llm(sys_prompt, f"Professor private message: '{data.message}'\nReply in character (1-2 sentences).", language=game_state.language, game_state=game_state, caller_name=student.name)
     
     student.thoughts.append(
         f"我的私信答复：'{reply}'" 

@@ -63,7 +63,7 @@ class TestProfessorSimulator(unittest.TestCase):
         ]
         
         # Check initial budget
-        self.assertEqual(state.funding, 10000.0)
+        self.assertEqual(state.funding, 500000.0)
         self.assertEqual(state.day, 1)
         
         # Launch project
@@ -75,6 +75,51 @@ class TestProfessorSimulator(unittest.TestCase):
         self.assertEqual(len(state.system_logs), 1)
         self.assertIn("Day 1: Test project initiated.", state.system_logs[0])
         print("Game State transitions verified successfully.")
+
+    def test_commenting_endpoints(self):
+        print("Testing Commenting Endpoints...")
+        from fastapi.testclient import TestClient
+        from app.main import app
+        
+        client = TestClient(app)
+        
+        # Reset to clear any previous run state
+        client.post("/api/game/reset")
+        
+        # Adding a comment without active project should return 400
+        resp = client.post("/api/game/comment", json={"filename": "literature_review.md", "comment": "Add details"})
+        self.assertEqual(resp.status_code, 400)
+        
+        # Init project
+        client.post("/api/game/init_project", json={"topic": "Quantum Machine Learning"})
+        
+        # Now add a comment
+        resp = client.post("/api/game/comment", json={"filename": "literature_review.md", "comment": "Please focus on attention layers"})
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["status"], "ok")
+        self.assertIn("Please focus on attention layers", data["comments"])
+        
+        # Retrieve files and check comment
+        resp_files = client.get("/api/game/files")
+        self.assertEqual(resp_files.status_code, 200)
+        files = resp_files.json()
+        lit_file = next(f for f in files if f["name"] == "literature_review.md")
+        self.assertIn("Please focus on attention layers", lit_file["comments"])
+        print("Commenting endpoints verified successfully.")
+        
+    def test_usage_based_costs(self):
+        print("Testing Usage-based cost deductions...")
+        from app.game_state import GameState
+        from app.agent_manager import call_llm
+        
+        state = GameState()
+        state.funding = 1000.0
+        
+        # Call LLM and check if 50 is deducted
+        call_llm("System prompt", "User prompt", game_state=state)
+        self.assertEqual(state.funding, 950.0)
+        print("Usage-based cost deductions verified successfully.")
 
 if __name__ == "__main__":
     unittest.main()

@@ -23,7 +23,7 @@ const TRANSLATIONS = {
   cn: {
     title: "教授模拟器",
     subtitle: "大模型智能科研实验室",
-    budget: "实验室经费 (USD)",
+    budget: "实验室经费 (元)",
     reputation: "实验室声望",
     simDay: "模拟天数",
     activeProject: "当前进行中课题",
@@ -58,7 +58,7 @@ const TRANSLATIONS = {
     rejectBtn: "驳回并要求修改 ✗",
     placeholderFeedback: "添加指导意见或修改要求...",
     submitTitle: "🚀 学术论文投稿与盲审",
-    submitDesc: "论文手稿已最终定稿！支付会议注册费并投稿进行同行双盲评审。提交稿件需要支付 $800 会议注册费。",
+    submitDesc: "论文手稿已最终定稿！并投稿进行同行双盲评审。提交稿件需要从实验室经费扣除会议注册费。",
     venueLabel: "选择投稿会议：",
     submitBtn: "提交学术手稿",
     reviewsTitle: "📬 同行评审报告 (Blind Review)",
@@ -72,7 +72,7 @@ const TRANSLATIONS = {
   en: {
     title: "PI Simulator",
     subtitle: "Agentic Research Lab",
-    budget: "Budget (USD)",
+    budget: "Budget (RMB)",
     reputation: "Reputation",
     simDay: "Simulation Day",
     activeProject: "Active Project",
@@ -107,7 +107,7 @@ const TRANSLATIONS = {
     rejectBtn: "Request Revisions ✗",
     placeholderFeedback: "Add guidance or revision requests if rejecting...",
     submitTitle: "🚀 Submit Research Paper",
-    submitDesc: "Your paper draft is finalized. Submit the manuscript for peer review. Submitting costs $800 registration fees.",
+    submitDesc: "Your paper draft is finalized. Submit the manuscript for peer review. Submitting will deduct the registration fee from your lab funding.",
     venueLabel: "Select Target Venue:",
     submitBtn: "Submit Manuscript",
     reviewsTitle: "📬 Peer Review Reports",
@@ -132,6 +132,11 @@ export default function App() {
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [selectedConf, setSelectedConf] = useState(CONFERENCES[0].name);
 
+  // Workspace File Explorer & Commenting States
+  const [workspaceFiles, setWorkspaceFiles] = useState([]);
+  const [activeFile, setActiveFile] = useState(null);
+  const [commentText, setCommentText] = useState('');
+
   // Poll state every 3 seconds for active ticks
   useEffect(() => {
     fetchState();
@@ -139,17 +144,59 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  const fetchFiles = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/game/files`);
+      if (res.ok) {
+        const data = await res.json();
+        setWorkspaceFiles(data);
+        // Refresh the open file details if any is active
+        if (activeFile) {
+          const updated = data.find(f => f.name === activeFile.name);
+          if (updated) setActiveFile(updated);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch workspace files", err);
+    }
+  };
+
   const fetchState = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/game/state`);
       if (!res.ok) throw new Error("Failed to fetch game state");
       const data = await res.json();
       setState(data);
-      if (data.students && data.students.length > 0 && !selectedStudent) {
-        setSelectedStudent(data.students[0].name);
-      }
+      setSelectedStudent(prev => prev || (data.students && data.students.length > 0 ? data.students[0].name : null));
+      fetchFiles();
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!commentText.trim() || !activeFile) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/game/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: activeFile.name, comment: commentText })
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || "Comment submission failed");
+      }
+      setCommentText('');
+      fetchFiles();
+      // Refetch state to update system logs
+      const stateRes = await fetch(`${API_BASE}/api/game/state`);
+      if (stateRes.ok) {
+        const stateData = await stateRes.json();
+        setState(stateData);
+      }
+    } catch (err) {
+      alert(err.message);
     }
   };
 
@@ -344,7 +391,7 @@ export default function App() {
             <div className="stat-header">
               <span>{t.budget}</span>
             </div>
-            <div className="stat-val">${state.funding.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="stat-val">¥{state.funding.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </div>
           <div className="stat-card">
             <div className="stat-header">
@@ -419,8 +466,10 @@ export default function App() {
           </div>
         </header>
 
-        {/* Tabs Area */}
-        <div className="tab-pane">
+        {/* Main Body Layout with tab pane and right side file browser */}
+        <div className="main-body-layout">
+          <div className="tab-pane-container">
+            <div className="tab-pane">
           {/* Office Tab */}
           {activeTab === 'office' && (
             <div className="office-tab">
@@ -745,8 +794,87 @@ export default function App() {
               )}
             </div>
           )}
-        </div>
+        </div> {/* tab-pane */}
+      </div> {/* tab-pane-container */}
+
+          {/* Right Side File Browser Panel */}
+          <aside className="file-browser-panel">
+            <div className="file-browser-header">
+              <span>📁</span>
+              <h3>{state.language === 'cn' ? '工作区文件' : 'Workspace Files'}</h3>
+            </div>
+            
+            <div className="file-list">
+              {workspaceFiles.map((file) => (
+                <div 
+                  key={file.name} 
+                  className={`file-item ${activeFile && activeFile.name === file.name ? 'selected' : ''}`}
+                  onClick={() => file.exists ? setActiveFile(file) : null}
+                  style={{ opacity: file.exists ? 1 : 0.6, cursor: file.exists ? 'pointer' : 'default' }}
+                >
+                  <div className="file-item-header">
+                    <span className="name">📄 {file.name}</span>
+                    <span className={`file-badge ${file.exists ? 'exists' : 'not-exists'}`}>
+                      {file.exists ? (state.language === 'cn' ? '已生成' : 'Active') : (state.language === 'cn' ? '未生成' : 'Not Drafted')}
+                    </span>
+                  </div>
+                  <span className="display-name">{file.displayName}</span>
+                </div>
+              ))}
+            </div>
+          </aside>
+        </div> {/* main-body-layout */}
       </main>
+
+      {/* Overlay File Viewer and Commenting Modal */}
+      {activeFile && (
+        <div className="file-modal-overlay" onClick={() => setActiveFile(null)}>
+          <div className="file-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="file-modal-header">
+              <h3>📄 {activeFile.name} ({activeFile.displayName})</h3>
+              <button className="btn-close" onClick={() => setActiveFile(null)}>✕</button>
+            </div>
+            
+            <div className="file-modal-body">
+              {/* File Contents */}
+              <div className="file-content-pane">
+                <pre>{activeFile.content}</pre>
+              </div>
+              
+              {/* Comments Stream */}
+              <div className="comments-pane">
+                <h4>💬 {state.language === 'cn' ? '批注与反馈列表' : 'Annotations & Feedback'}</h4>
+                
+                <div className="comments-list">
+                  {activeFile.comments && activeFile.comments.length > 0 ? (
+                    activeFile.comments.map((comment, idx) => (
+                      <div key={idx} className="comment-bubble">
+                        <div className="comment-author">{state.language === 'cn' ? '导师/教授 (PI)' : 'Professor (PI)'}</div>
+                        <div>{comment}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="empty-text" style={{ fontSize: '0.8rem', padding: '10px 0' }}>
+                      {state.language === 'cn' ? '暂无批注。在下方输入框可添加新批注，指导学生下一步的修改。' : 'No annotations. Add comments below to guide revisions.'}
+                    </p>
+                  )}
+                </div>
+                
+                <form onSubmit={handleCommentSubmit} className="comment-input-area">
+                  <textarea 
+                    placeholder={state.language === 'cn' ? '输入批注修改要求（例如：“在引言中增加关于收敛阶的数学证明”）...' : 'Type feedback (e.g. "Add details to section 3")...'}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                  />
+                  <button type="submit" className="btn-primary" disabled={!commentText.trim()}>
+                    {state.language === 'cn' ? '发表批注' : 'Add Comment'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Global Logs Panel */}
       <section className="global-logs-panel glass-card">

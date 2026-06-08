@@ -1,6 +1,6 @@
-# 🔬 Professor Simulator (Research Agent Simulator)
+# 🔬 You Researcher (Research Agent Simulator)
 
-Welcome to **Professor Simulator**, an agentic simulator game where you play the Principal Investigator (PI) of a research lab. Manage PhD students, synthesize research from ArXiv, approve proposals, run code in a sandbox, compile manuscripts, and submit them to top-tier conferences!
+Welcome to **You Researcher**, an agentic simulator game where you play the Principal Investigator (PI) of a research lab. Manage PhD students, synthesize research from ArXiv, approve proposals, run code in a sandbox, compile manuscripts, and submit them to top-tier conferences!
 
 ---
 
