@@ -2,6 +2,8 @@ import os
 import random
 import shutil
 import time
+import re
+import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -35,8 +37,168 @@ WORKSPACE_DIR = os.path.join(BASE_DIR, "workspace")
 SANDBOX_DIR = os.path.join(BASE_DIR, "sandbox_env")
 FRONTEND_DIST = os.path.join(BASE_DIR, "frontend", "dist")
 
+def generate_project_id(topic: str) -> str:
+    # Keep alphanumeric characters and Chinese characters, and replace other symbols with underscores
+    sanitized = re.sub(r'[^a-zA-Z0-9\u4e00-\u9fa5]+', '_', topic.strip().lower())
+    sanitized = sanitized.strip('_')[:30]
+    return f"{sanitized}_{int(time.time())}"
+
+def backup_active_project(state: GameState):
+    if not state.active_project_id:
+        return
+    
+    project_dir = os.path.join(os.path.dirname(SAVE_FILE), "projects", state.active_project_id)
+    os.makedirs(project_dir, exist_ok=True)
+    
+    # Save the json state inside the project folder
+    project_save_path = os.path.join(project_dir, "save_state.json")
+    with open(project_save_path, "w", encoding="utf-8") as f:
+        f.write(state.model_dump_json(indent=2))
+        
+    # Copy the workspace folder to project/workspace
+    project_ws_dir = os.path.join(project_dir, "workspace")
+    if os.path.exists(WORKSPACE_DIR):
+        if os.path.exists(project_ws_dir):
+            shutil.rmtree(project_ws_dir)
+        shutil.copytree(WORKSPACE_DIR, project_ws_dir)
+
+def load_project_from_history(project_id: str) -> GameState:
+    project_dir = os.path.join(os.path.dirname(SAVE_FILE), "projects", project_id)
+    project_save_path = os.path.join(project_dir, "save_state.json")
+    
+    if not os.path.exists(project_save_path):
+        raise HTTPException(status_code=404, detail="Project save file not found.")
+        
+    with open(project_save_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        state = GameState(**data)
+        
+    # Restore workspace folder
+    project_ws_dir = os.path.join(project_dir, "workspace")
+    if os.path.exists(WORKSPACE_DIR):
+        shutil.rmtree(WORKSPACE_DIR)
+        
+    if os.path.exists(project_ws_dir):
+        shutil.copytree(project_ws_dir, WORKSPACE_DIR)
+    else:
+        os.makedirs(WORKSPACE_DIR, exist_ok=True)
+        # Create empty folders for students
+        for s in state.students:
+            os.makedirs(os.path.join(WORKSPACE_DIR, s.name), exist_ok=True)
+            
+    # Set the active project id
+    state.active_project_id = project_id
+    state.save()
+    return state
+
+def delete_project_from_history(project_id: str, current_state: GameState) -> Optional[GameState]:
+    project_dir = os.path.join(os.path.dirname(SAVE_FILE), "projects", project_id)
+    if os.path.exists(project_dir):
+        shutil.rmtree(project_dir)
+        
+    # If we deleted the active project, reset active state to blank
+    if current_state.active_project_id == project_id:
+        current_state.active_project_id = None
+        current_state.current_project = None
+        if os.path.exists(WORKSPACE_DIR):
+            shutil.rmtree(WORKSPACE_DIR)
+        os.makedirs(WORKSPACE_DIR, exist_ok=True)
+        for s in current_state.students:
+            os.makedirs(os.path.join(WORKSPACE_DIR, s.name), exist_ok=True)
+            
+        is_cn = (current_state.language == "cn")
+        for s in current_state.students:
+            s.status = "空闲" if is_cn else "Idle"
+            s.activity = "等待指令。" if is_cn else "Awaiting instructions."
+            s.thoughts = []
+            s.logs = []
+            s.energy = 100
+        current_state.pending_approvals = []
+        current_state.session_cost = 0.0
+        current_state.save()
+        return current_state
+    return None
+
+def reset_active_project(state: GameState) -> GameState:
+    if not state.current_project:
+        return state
+        
+    topic = state.current_project.topic
+    
+    if os.path.exists(WORKSPACE_DIR):
+        shutil.rmtree(WORKSPACE_DIR)
+    os.makedirs(WORKSPACE_DIR, exist_ok=True)
+    for s in state.students:
+        os.makedirs(os.path.join(WORKSPACE_DIR, s.name), exist_ok=True)
+        
+    state.current_project = Project(topic=topic)
+    state.pending_approvals = []
+    state.session_cost = 0.0
+    state.funding = 500000.0
+    state.reputation = 0.0
+    state.day = 1
+    
+    is_chinese = (state.language == "cn")
+    for student in state.students:
+        student.status = "空闲" if is_chinese else "Idle"
+        student.activity = "等待指令。" if is_chinese else "Awaiting instructions."
+        student.thoughts = []
+        student.logs = []
+        student.energy = 100
+        
+    members = [s.name for s in state.students] + ["PI"]
+    state.channels = [
+        ChatChannel(
+            id="group",
+            name="实验室群聊" if is_chinese else "Lab Group Chat",
+            members=members,
+            messages=[
+                ChatMessage(
+                    id="init_msg",
+                    sender="System",
+                    role="Moderator",
+                    message="课题已重置，新课题重新启动！文献讨论组已自动开启。" if is_chinese else "Project reset. Discussion channel initialized.",
+                    timestamp=time.time()
+                )
+            ]
+        )
+    ]
+    for s in state.students:
+        private_id = s.name.lower()
+        private_name = f"{s.name} (私聊)" if is_chinese else f"{s.name} (Private)"
+        state.channels.append(
+            ChatChannel(id=private_id, name=private_name, members=[s.name, "PI"])
+        )
+    
+    state.add_log(
+        f"重置了科研项目：'{topic}'" 
+        if is_chinese else 
+        f"Reset research project: '{topic}'"
+    )
+    
+    state.save()
+    backup_active_project(state)
+    trigger_background_agent_loop("group", state)
+    return state
+
 class ProjectInit(BaseModel):
     topic: str
+
+class ProjectLoadInput(BaseModel):
+    project_id: str
+
+class ProjectDeleteInput(BaseModel):
+    project_id: str
+
+class StudentCreateInput(BaseModel):
+    name: str
+    role: str
+    skills: Dict[str, float]
+    personality: str
+    preset_id: Optional[str] = None
+
+class StudentDismissInput(BaseModel):
+    name: str
 
 class ApprovalInput(BaseModel):
     approval_id: str
@@ -79,7 +241,7 @@ def get_workspace_files():
     if not os.path.exists(WORKSPACE_DIR):
         return files
         
-    students = ["Alice", "Bob", "Charlie"]
+    students = [s.name for s in game_state.students]
     project = game_state.current_project
     comments_map = project.file_comments if project else {}
     
@@ -149,6 +311,7 @@ def get_state():
         "reputation": game_state.reputation,
         "day": game_state.day,
         "language": game_state.language,
+        "active_project_id": game_state.active_project_id,
         "current_project": game_state.current_project.model_dump() if game_state.current_project else None,
         "students": [s.model_dump() for s in game_state.students],
         "system_logs": game_state.system_logs,
@@ -171,6 +334,24 @@ def update_settings(data: SettingsInput):
     game_state.autonomous_mode = data.autonomous_mode
     game_state.max_cost_limit = data.max_cost_limit
     game_state.funding_mode = data.funding_mode
+    
+    # Update persistent lab configuration file
+    from app.game_state import load_lab_config, LLMProfile
+    try:
+        lab_cfg = load_lab_config()
+        active_profile_name = lab_cfg.active_profile
+        lab_cfg.profiles[active_profile_name] = LLMProfile(
+            provider=data.provider,
+            api_key=data.api_key,
+            base_url=data.base_url,
+            model=data.model
+        )
+        lab_cfg.autonomous_mode = data.autonomous_mode
+        lab_cfg.max_cost_limit = data.max_cost_limit
+        lab_cfg.funding_mode = data.funding_mode
+        lab_cfg.save()
+    except Exception as e:
+        print(f"Error saving persistent settings to lab_config.json: {e}")
     
     # Try fetching balance if mode is real
     if data.funding_mode == "real":
@@ -283,14 +464,16 @@ def init_project(data: ProjectInit):
     if game_state.current_project and game_state.current_project.status == "Active":
         raise HTTPException(status_code=400, detail="A project is already active." if game_state.language == "en" else "当前已有正在进行的科研项目。")
     
+    # Generate project ID
+    game_state.active_project_id = generate_project_id(data.topic)
+    
     # Initialize workspace subdirectories
     if os.path.exists(WORKSPACE_DIR):
         shutil.rmtree(WORKSPACE_DIR)
     os.makedirs(WORKSPACE_DIR, exist_ok=True)
     
-    students = ["Alice", "Bob", "Charlie"]
-    for s_name in students:
-        os.makedirs(os.path.join(WORKSPACE_DIR, s_name), exist_ok=True)
+    for s in game_state.students:
+        os.makedirs(os.path.join(WORKSPACE_DIR, s.name), exist_ok=True)
         
     game_state.current_project = Project(topic=data.topic)
     game_state.pending_approvals = []
@@ -306,11 +489,12 @@ def init_project(data: ProjectInit):
         student.energy = 100
         
     # Initialize default channels
+    members = [s.name for s in game_state.students] + ["PI"]
     game_state.channels = [
         ChatChannel(
             id="group",
             name="实验室群聊" if is_chinese else "Lab Group Chat",
-            members=["Alice", "Bob", "Charlie", "PI"],
+            members=members,
             messages=[
                 ChatMessage(
                     id="init_msg",
@@ -320,11 +504,14 @@ def init_project(data: ProjectInit):
                     timestamp=time.time()
                 )
             ]
-        ),
-        ChatChannel(id="alice", name="Alice (私聊)" if is_chinese else "Alice (Private)", members=["Alice", "PI"]),
-        ChatChannel(id="bob", name="Bob (私聊)" if is_chinese else "Bob (Private)", members=["Bob", "PI"]),
-        ChatChannel(id="charlie", name="Charlie (私聊)" if is_chinese else "Charlie (Private)", members=["Charlie", "PI"])
+        )
     ]
+    for s in game_state.students:
+        private_id = s.name.lower()
+        private_name = f"{s.name} (私聊)" if is_chinese else f"{s.name} (Private)"
+        game_state.channels.append(
+            ChatChannel(id=private_id, name=private_name, members=[s.name, "PI"])
+        )
     
     game_state.add_log(
         f"启动了新科研项目：'{data.topic}'" 
@@ -336,6 +523,7 @@ def init_project(data: ProjectInit):
     trigger_background_agent_loop("group", game_state)
     
     game_state.save()
+    backup_active_project(game_state)
     return get_state()
 
 @app.post("/api/game/channels/{channel_id}/messages")
@@ -559,7 +747,251 @@ def reset_game():
         except Exception:
             pass
             
+    projects_dir = os.path.join(os.path.dirname(SAVE_FILE), "projects")
+    if os.path.exists(projects_dir):
+        try:
+            shutil.rmtree(projects_dir)
+        except Exception:
+            pass
+            
     game_state = GameState.load()
+    return get_state()
+
+@app.get("/api/game/projects")
+def list_projects():
+    projects_dir = os.path.join(os.path.dirname(SAVE_FILE), "projects")
+    results = []
+    if not os.path.exists(projects_dir):
+        return results
+        
+    for name in os.listdir(projects_dir):
+        path = os.path.join(projects_dir, name)
+        if os.path.isdir(path):
+            state_path = os.path.join(path, "save_state.json")
+            if os.path.exists(state_path):
+                try:
+                    with open(state_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    
+                    current_proj = data.get("current_project")
+                    topic = current_proj.get("topic") if current_proj else "Unknown Topic"
+                    stage = current_proj.get("stage") if current_proj else "Unknown Stage"
+                    day = data.get("day", 1)
+                    funding = data.get("funding", 500000.0)
+                    reputation = data.get("reputation", 0.0)
+                    
+                    # Last modified time of save_state.json
+                    last_saved = os.path.getmtime(state_path)
+                    
+                    results.append({
+                        "project_id": name,
+                        "topic": topic,
+                        "stage": stage,
+                        "day": day,
+                        "funding": funding,
+                        "reputation": reputation,
+                        "last_saved": last_saved
+                    })
+                except Exception as e:
+                    print(f"Error reading project history for {name}: {e}")
+                    
+    # Sort by last_saved descending
+    results.sort(key=lambda x: x["last_saved"], reverse=True)
+    return results
+
+@app.post("/api/game/projects/reset")
+def reset_project_endpoint():
+    global game_state
+    game_state = reset_active_project(game_state)
+    return get_state()
+
+@app.post("/api/game/projects/new_intent")
+def prepare_new_project():
+    global game_state
+    # 1. Save current project
+    if game_state.active_project_id and game_state.current_project:
+        backup_active_project(game_state)
+        
+    # 2. Reset active project parameters back to blank
+    game_state.active_project_id = None
+    game_state.current_project = None
+    
+    if os.path.exists(WORKSPACE_DIR):
+        shutil.rmtree(WORKSPACE_DIR)
+    os.makedirs(WORKSPACE_DIR, exist_ok=True)
+    for s in game_state.students:
+        os.makedirs(os.path.join(WORKSPACE_DIR, s.name), exist_ok=True)
+        
+    # Reset students
+    is_chinese = (game_state.language == "cn")
+    for student in game_state.students:
+        student.status = "空闲" if is_chinese else "Idle"
+        student.activity = "等待指令。" if is_chinese else "Awaiting instructions."
+        student.thoughts = []
+        student.logs = []
+        student.energy = 100
+        
+    game_state.pending_approvals = []
+    game_state.session_cost = 0.0
+    
+    game_state.save()
+    return get_state()
+
+@app.post("/api/game/projects/load")
+def load_project_endpoint(data: ProjectLoadInput):
+    global game_state
+    # Backup current active first
+    if game_state.active_project_id and game_state.current_project:
+        backup_active_project(game_state)
+        
+    game_state = load_project_from_history(data.project_id)
+    return get_state()
+
+@app.post("/api/game/projects/delete")
+def delete_project_endpoint(data: ProjectDeleteInput):
+    global game_state
+    res = delete_project_from_history(data.project_id, game_state)
+    if res is not None:
+        game_state = res
+    return get_state()
+
+@app.post("/api/game/students/create")
+def recruit_student(data: StudentCreateInput):
+    global game_state
+    
+    # Check if student already exists
+    name_clean = data.name.strip()
+    if any(s.name.lower() == name_clean.lower() for s in game_state.students):
+        raise HTTPException(
+            status_code=400,
+            detail="A student with this name already exists in the lab." if game_state.language == "en" else "实验室内已存在该名字的学生。"
+        )
+        
+    # Generate system prompt profile
+    r_val = data.skills.get("research", 0.5)
+    c_val = data.skills.get("coding", 0.5)
+    w_val = data.skills.get("writing", 0.5)
+    
+    if data.preset_id == "data_engineer":
+        profile = (
+            f"You are {name_clean}, a PhD student in the lab. Your role is '{data.role}' (Data Engineer). "
+            f"You excel at data preprocessing, pipelines, data cleaning, and dataset ingestion (coding {c_val*10:.0f}/10, "
+            f"research {r_val*10:.0f}/10, writing {w_val*10:.0f}/10).\n"
+            f"Personality: Meticulous, logical, data-driven. Speaks in a precise, engineering-focused tone.\n"
+            f"Custom Instructions: {data.personality}"
+        )
+    elif data.preset_id == "theoretical_analyst":
+        profile = (
+            f"You are {name_clean}, a PhD student in the lab. Your role is '{data.role}' (Theoretical Analyst). "
+            f"You excel at literature review, math proofs, theoretical formulation, and paper writing (research {r_val*10:.0f}/10, "
+            f"writing {w_val*10:.0f}/10, coding {c_val*10:.0f}/10).\n"
+            f"Personality: Academic, detailed, formal. Speaks in a rigorous, mathematical, and polite tone.\n"
+            f"Custom Instructions: {data.personality}"
+        )
+    elif data.preset_id == "ml_dev":
+        profile = (
+            f"You are {name_clean}, a PhD student in the lab. Your role is '{data.role}' (Machine Learning Developer). "
+            f"You excel at writing model training scripts, PyTorch/TensorFlow, and sandbox experimentation (coding {c_val*10:.0f}/10, "
+            f"research {r_val*10:.0f}/10, writing {w_val*10:.0f}/10).\n"
+            f"Personality: Enthusiastic hacker, focused on speed, efficiency, and code comments. Speaks dynamically and colloquially.\n"
+            f"Custom Instructions: {data.personality}"
+        )
+    elif data.preset_id == "academic_writer":
+        profile = (
+            f"You are {name_clean}, a PhD student in the lab. Your role is '{data.role}' (Academic Writer). "
+            f"You excel at writing paper drafts, polishing text, abstracts, and compiling peer reviews (writing {w_val*10:.0f}/10, "
+            f"research {r_val*10:.0f}/10, coding {c_val*10:.0f}/10).\n"
+            f"Personality: Fluent, polished, persuasive. Speaks elegantly and formally, focusing on narrative clarity.\n"
+            f"Custom Instructions: {data.personality}"
+        )
+    else:
+        # Custom
+        profile = (
+            f"You are {name_clean}, a PhD student in the lab. Your role is '{data.role}'. "
+            f"You have the following skills: research {r_val*10:.0f}/10, coding {c_val*10:.0f}/10, writing {w_val*10:.0f}/10.\n"
+            f"Personality Description: {data.personality}\n"
+            f"You will assist the Professor with research, coding, or writing tasks according to your skills."
+        )
+        
+    # Create Student
+    is_cn = (game_state.language == "cn")
+    new_student = Student(
+        name=name_clean,
+        role=data.role,
+        skills=data.skills,
+        status="空闲" if is_cn else "Idle",
+        activity="等待指令。" if is_cn else "Awaiting instructions.",
+        custom_prompt=profile
+    )
+    game_state.students.append(new_student)
+    
+    # Create workspace subfolder
+    student_ws_dir = os.path.join(WORKSPACE_DIR, name_clean)
+    os.makedirs(student_ws_dir, exist_ok=True)
+    
+    # Add to group channel members
+    group_channel = next((c for c in game_state.channels if c.id == "group"), None)
+    if group_channel and name_clean not in group_channel.members:
+        group_channel.members.append(name_clean)
+        
+    # Create private chat channel
+    private_channel_id = name_clean.lower()
+    if not any(c.id == private_channel_id for c in game_state.channels):
+        channel_name = f"{name_clean} (私聊)" if is_cn else f"{name_clean} (Private)"
+        new_channel = ChatChannel(
+            id=private_channel_id,
+            name=channel_name,
+            members=[name_clean, "PI"],
+            messages=[],
+            unread=False
+        )
+        game_state.channels.append(new_channel)
+        
+    # Add Log
+    game_state.add_log(
+        f"成功招募新成员 {name_clean} （{data.role}）加入实验室团队！" 
+        if is_cn else 
+        f"Successfully recruited new member {name_clean} ({data.role}) to the lab team!"
+    )
+    
+    game_state.save()
+    backup_active_project(game_state)
+    return get_state()
+
+@app.post("/api/game/students/dismiss")
+def dismiss_student(data: StudentDismissInput):
+    global game_state
+    
+    name_clean = data.name.strip()
+    student = next((s for s in game_state.students if s.name == name_clean), None)
+    if not student:
+        raise HTTPException(
+            status_code=404,
+            detail="Student not found in the lab." if game_state.language == "en" else "实验室内未找到该名字的学生。"
+        )
+        
+    # Remove from student list
+    game_state.students = [s for s in game_state.students if s.name != name_clean]
+    
+    # Remove from group channel members
+    group_channel = next((c for c in game_state.channels if c.id == "group"), None)
+    if group_channel:
+        group_channel.members = [m for m in group_channel.members if m != name_clean]
+        
+    # Remove private chat channel
+    private_channel_id = name_clean.lower()
+    game_state.channels = [c for c in game_state.channels if c.id != private_channel_id]
+    
+    # Add Log
+    is_cn = (game_state.language == "cn")
+    game_state.add_log(
+        f"成员 {name_clean} 离开了实验室。" 
+        if is_cn else 
+        f"Member {name_clean} has left the lab."
+    )
+    
+    game_state.save()
+    backup_active_project(game_state)
     return get_state()
 
 # Serve frontend build static files if they exist

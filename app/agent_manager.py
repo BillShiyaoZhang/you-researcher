@@ -116,10 +116,18 @@ def fetch_api_balance(provider: str, api_key: str, base_url: str) -> Optional[fl
 
 def call_llm(system_prompt: str, user_prompt: str, language: str = "cn", game_state: Optional[GameState] = None, caller_name: Optional[str] = None) -> str:
     config = game_state.llm_config if game_state else None
-    provider = config.provider if config else "openai"
-    api_key = config.api_key if config else os.getenv("OPENAI_API_KEY")
-    base_url = config.base_url if config else os.getenv("OPENAI_API_BASE")
-    model = config.model if config else os.getenv("LLM_MODEL", "gpt-3.5-turbo")
+    
+    # If UI doesn't have an API key, we treat it as using .env config entirely
+    if config and config.api_key and config.api_key.strip() != "":
+        provider = config.provider
+        api_key = config.api_key
+        base_url = config.base_url
+        model = config.model
+    else:
+        provider = os.getenv("LLM_PROVIDER", "openai")
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        base_url = os.getenv("OPENAI_API_BASE", "")
+        model = os.getenv("LLM_MODEL", "gpt-3.5-turbo")
     
     # Check if API Key is not set or empty
     if not api_key or api_key.strip() == "" or api_key == "your_api_key_here":
@@ -403,7 +411,7 @@ def parse_json_response(text: str) -> Dict[str, Any]:
         raise e
 
 def get_agent_system_prompt(student: Student, project: Project, workspace_files: Dict[str, str], channel_name: str, language: str) -> str:
-    profile = SYSTEM_PROMPTS.get(student.name, "")
+    profile = getattr(student, "custom_prompt", None) or SYSTEM_PROMPTS.get(student.name, "")
     
     files_str = ""
     if workspace_files:
@@ -451,56 +459,65 @@ IMPORTANT:
 
 def trigger_background_agent_loop(channel_id: str, game_state: GameState):
     """
-    Spawns a background thread to update agent states and responses for the channel.
+    Spawns concurrent background threads to update agent states and responses for the channel.
     """
-    thread = threading.Thread(target=_background_agent_worker, args=(channel_id, game_state))
-    thread.daemon = True
-    thread.start()
-
-def _background_agent_worker(channel_id: str, game_state: GameState):
     with state_lock:
         channel = next((c for c in game_state.channels if c.id == channel_id), None)
         if not channel:
             return
             
-    # Prevent infinite loops in normal mode
-    if channel_id not in consecutive_replies:
-        consecutive_replies[channel_id] = 0
+        # Prevent infinite loops in normal mode
+        if channel_id not in consecutive_replies:
+            consecutive_replies[channel_id] = 0
+            
+        members = [m for m in channel.members if m != "PI"]
         
-    members = [m for m in channel.members if m != "PI"]
-    
-    # Process each student agent in the channel
     for member_name in members:
-        with state_lock:
-            student = next((s for s in game_state.students if s.name == member_name), None)
-            if not student:
-                continue
+        thread = threading.Thread(target=_single_agent_worker, args=(channel_id, member_name, game_state))
+        thread.daemon = True
+        thread.start()
+
+def _single_agent_worker(channel_id: str, member_name: str, game_state: GameState):
+    with state_lock:
+        channel = next((c for c in game_state.channels if c.id == channel_id), None)
+        if not channel:
+            return
+            
+        student = next((s for s in game_state.students if s.name == member_name), None)
+        if not student:
+            return
+            
+        # If resting, skip
+        if student.status in ["休息中", "Resting"]:
+            # Re-charge energy slightly
+            student.energy = min(100, student.energy + 20)
+            if student.energy >= 80:
+                student.status = "空闲" if game_state.language == "cn" else "Idle"
+                student.activity = "休息完毕！重新恢复科研工作。" if game_state.language == "cn" else "Finished resting. Ready for work."
+            game_state.save()
+            return
+            
+        # Check energy depletion
+        if student.energy < 15:
+            student.status = "休息中" if game_state.language == "cn" else "Resting"
+            student.activity = "补充睡眠中..." if game_state.language == "cn" else "Sleeping and recharging energy."
+            student.thoughts.append("累垮了，我得去睡个长觉。" if game_state.language == "cn" else "I'm exhausted... need to rest.")
+            game_state.add_log(f"学生 {student.name} 精疲力竭，被迫停工休息。")
+            game_state.save()
+            return
+            
+        # Check maximum replies limit in normal mode
+        if not game_state.autonomous_mode:
+            if consecutive_replies.get(channel_id, 0) >= 3:
+                return
                 
-            # If resting, skip
-            if student.status in ["休息中", "Resting"]:
-                # Re-charge energy slightly
-                student.energy = min(100, student.energy + 20)
-                if student.energy >= 80:
-                    student.status = "空闲" if game_state.language == "cn" else "Idle"
-                    student.activity = "休息完毕！重新恢复科研工作。" if game_state.language == "cn" else "Finished resting. Ready for work."
-                game_state.save()
-                continue
-                
-            # Check energy depletion
-            if student.energy < 15:
-                student.status = "休息中" if game_state.language == "cn" else "Resting"
-                student.activity = "补充睡眠中..." if game_state.language == "cn" else "Sleeping and recharging energy."
-                student.thoughts.append("累垮了，我得去睡个长觉。" if game_state.language == "cn" else "I'm exhausted... need to rest.")
-                game_state.add_log(f"学生 {student.name} 精疲力竭，被迫停工休息。")
-                game_state.save()
-                continue
-                
-            # Check maximum replies limit in normal mode
-            if not game_state.autonomous_mode:
-                if consecutive_replies[channel_id] >= 3:
-                    game_state.add_log("已达到连续发言最大上限（3次）。等待教授介入..." if game_state.language == "cn" else "Reached maximum consecutive replies. Awaiting PI guidance.")
-                    game_state.save()
-                    break
+        # If waiting for approval, skip
+        if student.status in ["等待审批", "Awaiting Approval", "等待教授审批", "Awaiting PI Approval"]:
+            return
+            
+        # If busy doing something else, skip
+        if student.status not in ["空闲", "Idle"]:
+            return
 
         # Read isolated workspace files
         workspace_files = {}
@@ -521,195 +538,211 @@ def _background_agent_worker(channel_id: str, game_state: GameState):
         sys_prompt = get_agent_system_prompt(student, game_state.current_project, workspace_files, channel.name, game_state.language)
         
         history_str = ""
-        with state_lock:
-            for msg in channel.messages[-8:]:
-                history_str += f"{msg.sender}: {msg.message}\n"
-                
+        for msg in channel.messages[-8:]:
+            history_str += f"{msg.sender}: {msg.message}\n"
+            
         user_prompt = f"Recent conversation history in channel:\n{history_str}\nPlease decide your response and next action."
+
+    # Call LLM outside the lock
+    response_text = call_llm(sys_prompt, user_prompt, language=game_state.language, game_state=game_state, caller_name=member_name)
+    
+    # Parse JSON
+    try:
+        resp_data = parse_json_response(response_text)
+    except Exception as err:
+        print(f"Error parsing JSON from {member_name}: {err}. Raw: {response_text}")
+        resp_data = {
+            "thoughts": f"Error parsing: {str(err)}",
+            "message": "我的思维断了，等我缓一缓。" if game_state.language == "cn" else "I got a bit stuck. Sorry!",
+            "action": None
+        }
         
-        response_text = call_llm(sys_prompt, user_prompt, language=game_state.language, game_state=game_state, caller_name=member_name)
+    reacted = False
+    
+    # Apply edits under lock
+    with state_lock:
+        # Re-fetch references to ensure thread safety
+        student = next((s for s in game_state.students if s.name == member_name), None)
+        project = game_state.current_project
+        channel = next((c for c in game_state.channels if c.id == channel_id), None)
         
-        # Parse JSON
-        try:
-            resp_data = parse_json_response(response_text)
-        except Exception as err:
-            print(f"Error parsing JSON from {member_name}: {err}. Raw: {response_text}")
-            resp_data = {
-                "thoughts": f"Error parsing: {str(err)}",
-                "message": "我的思维断了，等我缓一缓。" if game_state.language == "cn" else "I got a bit stuck. Sorry!",
-                "action": None
-            }
+        if not student or not project or not channel:
+            return
             
-        # Apply edits under lock
-        with state_lock:
-            # Re-fetch references to ensure thread safety
-            student = next((s for s in game_state.students if s.name == member_name), None)
-            project = game_state.current_project
-            channel = next((c for c in game_state.channels if c.id == channel_id), None)
+        # Monologue / Thoughts
+        if resp_data.get("thoughts"):
+            student.thoughts.append(resp_data["thoughts"])
             
-            if not student or not project or not channel:
-                continue
+        # Message
+        msg_text = resp_data.get("message")
+        if msg_text:
+            msg_id = f"msg_{int(time.time()*1000)}"
+            channel.messages.append(ChatMessage(
+                id=msg_id,
+                sender=member_name,
+                role=student.role,
+                message=msg_text,
+                timestamp=time.time()
+            ))
+            channel.unread = True
+            if not game_state.autonomous_mode:
+                consecutive_replies[channel_id] = consecutive_replies.get(channel_id, 0) + 1
+            student.energy = max(0, student.energy - 8)
+            reacted = True
+            
+        # Action execution
+        action = resp_data.get("action")
+        if action and action.get("type"):
+            action_type = action["type"]
+            params = action.get("params", {})
+            
+            # Auto approval check
+            is_auto = game_state.autonomous_mode and (action_type in ["run_experiment", "request_file_transfer"])
+            reacted = True
+            
+            if action_type == "search_arxiv":
+                query = params.get("query", project.topic)
+                student.status = "文献检索" if game_state.language == "cn" else "Searching ArXiv"
+                student.activity = f"检索 ArXiv: '{query}'" if game_state.language == "cn" else f"Querying ArXiv: '{query}'"
                 
-            # Monologue / Thoughts
-            if resp_data.get("thoughts"):
-                student.thoughts.append(resp_data["thoughts"])
-                
-            # Message
-            msg_text = resp_data.get("message")
-            if msg_text:
-                msg_id = f"msg_{int(time.time()*1000)}"
-                channel.messages.append(ChatMessage(
-                    id=msg_id,
-                    sender=member_name,
-                    role=student.role,
-                    message=msg_text,
-                    timestamp=time.time()
-                ))
-                channel.unread = True
-                if not game_state.autonomous_mode:
-                    consecutive_replies[channel_id] += 1
-                student.energy = max(0, student.energy - 8)
-                
-            # Action execution
-            action = resp_data.get("action")
-            if action and action.get("type"):
-                action_type = action["type"]
-                params = action.get("params", {})
-                
-                # Auto approval check
-                is_auto = game_state.autonomous_mode and (action_type in ["run_experiment", "request_file_transfer"])
-                
-                if action_type == "search_arxiv":
-                    query = params.get("query", project.topic)
-                    student.status = "文献检索" if game_state.language == "cn" else "Searching ArXiv"
-                    student.activity = f"检索 ArXiv: '{query}'" if game_state.language == "cn" else f"Querying ArXiv: '{query}'"
-                    
-                    papers = search_arxiv(query, max_results=4)
-                    papers_text = ""
-                    for idx, p in enumerate(papers):
-                        if "error" in p:
-                            papers_text += f"\nError: {p['error']}\n"
-                        elif "info" in p:
-                            papers_text += f"\nInfo: {p['info']}\n"
-                        else:
-                            papers_text += f"\nPaper {idx+1}: {p['title']}\nAbstract: {p['summary']}\nURL: {p['url']}\n"
-                            
-                    # Write to workspace
-                    with open(os.path.join(student_ws_dir, "arxiv_results.txt"), "w", encoding="utf-8") as f_out:
-                        f_out.write(papers_text)
-                    student.thoughts.append("文献检索完成。结果已保存至 arxiv_results.txt。" if game_state.language == "cn" else "ArXiv query completed. Saved to arxiv_results.txt.")
-                    student.status = "空闲" if game_state.language == "cn" else "Idle"
-                    student.activity = "完成文献综述数据拉取。" if game_state.language == "cn" else "Literature search completed."
-                    student.energy = max(0, student.energy - 10)
-                    
-                elif action_type == "write_file":
-                    filename = params.get("filename")
-                    content = params.get("content")
-                    if filename and content:
-                        with open(os.path.join(student_ws_dir, filename), "w", encoding="utf-8") as f_out:
-                            f_out.write(content)
-                        student.thoughts.append(f"已生成工作区文件: {filename}" if game_state.language == "cn" else f"Written workspace file: {filename}")
-                        student.energy = max(0, student.energy - 12)
-                        
-                        # Backwards compatibility stages
-                        if member_name == "Bob" and filename == "literature_review.md":
-                            project.proposal_draft = content
-                            project.stage = "Proposal"
-                        elif member_name == "Bob" and filename == "paper.md":
-                            project.paper_draft = content
-                            project.stage = "Awaiting Submission"
-                        elif member_name == "Alice" and filename == "proposal.md":
-                            project.proposal_draft = content
-                            
-                elif action_type == "run_experiment" and member_name == "Alice":
-                    if is_auto:
-                        code_path = os.path.join(student_ws_dir, "experiment.py")
-                        code_block = ""
-                        if os.path.exists(code_path):
-                            with open(code_path, "r", encoding="utf-8") as f_in:
-                                code_block = f_in.read()
-                        else:
-                            code_block = "print('Running default code...')"
-                            
-                        student.status = "实验中" if game_state.language == "cn" else "Experimenting"
-                        student.activity = "运行沙箱实验脚本..." if game_state.language == "cn" else "Executing code sandbox..."
-                        
-                        sandbox_result = execute_python_code(code_block, student_ws_dir)
-                        stdout = sandbox_result.get("stdout", "")
-                        stderr = sandbox_result.get("stderr", "")
-                        exit_code = sandbox_result.get("exit_code", -1)
-                        
-                        with open(os.path.join(student_ws_dir, "results.log"), "w", encoding="utf-8") as f_out:
-                            f_out.write(f"--- Sandbox Exit Code: {exit_code} ---\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}")
-                            
-                        student.thoughts.append("沙箱实验已顺利跑通。结果写入 results.log。" if game_state.language == "cn" else "Sandbox finished. Output saved to results.log.")
-                        student.status = "空闲" if game_state.language == "cn" else "Idle"
-                        student.activity = "沙箱脚本执行完毕。" if game_state.language == "cn" else "Sandbox run completed."
-                        student.energy = max(0, student.energy - 25)
-                        
-                        # Apply expense
-                        sandbox_cost = 5.0
-                        game_state.funding = max(0.0, game_state.funding - sandbox_cost)
-                        game_state.add_log(f"Alice 自动运行沙箱实验，消耗 ¥{sandbox_cost:.2f}" if game_state.language == "cn" else f"Alice executed sandbox experiment automatically, cost ¥{sandbox_cost:.2f}")
+                papers = search_arxiv(query, max_results=4)
+                papers_text = ""
+                for idx, p in enumerate(papers):
+                    if "error" in p:
+                        papers_text += f"\nError: {p['error']}\n"
+                    elif "info" in p:
+                        papers_text += f"\nInfo: {p['info']}\n"
                     else:
-                        app_id = f"sandbox_{int(time.time()*1000)}"
-                        game_state.pending_approvals.append({
-                            "id": app_id,
-                            "type": "run_sandbox",
-                            "student": "Alice",
-                            "title": "审批沙箱实验运行" if game_state.language == "cn" else "Approve Sandbox Experiment",
-                            "description": "Alice 请求运行她的实验代码 `experiment.py`。这需要开启安全沙箱隔离容器。"
-                        })
-                        student.status = "等待审批" if game_state.language == "cn" else "Awaiting Approval"
-                        student.activity = "等待教授批准启动实验..." if game_state.language == "cn" else "Awaiting sandbox run approval..."
+                        papers_text += f"\nPaper {idx+1}: {p['title']}\nAbstract: {p['summary']}\nURL: {p['url']}\n"
                         
-                elif action_type == "request_file_transfer":
-                    filename = params.get("filename")
-                    target = params.get("target_agent")
-                    if filename and target:
-                        if is_auto:
-                            src = os.path.join(student_ws_dir, filename)
-                            dst_dir = os.path.join(base_dir, "workspace", target)
-                            os.makedirs(dst_dir, exist_ok=True)
-                            dst = os.path.join(dst_dir, filename)
-                            if os.path.exists(src):
-                                shutil.copy(src, dst)
-                                game_state.add_log(f"[自动传输] 文件 {filename} 已从 {member_name} 共享至 {target}" if game_state.language == "cn" else f"[Auto Transfer] File {filename} shared from {member_name} to {target}")
-                                # Trigger background wakeup for target
-                                trigger_background_agent_loop("group", game_state)
-                        else:
-                            app_id = f"transfer_{int(time.time()*1000)}"
-                            game_state.pending_approvals.append({
-                                "id": app_id,
-                                "type": "file_transfer",
-                                "source": member_name,
-                                "target": target,
-                                "filename": filename,
-                                "title": f"共享文件请求: {member_name} -> {target}" if game_state.language == "cn" else f"File Shared Request: {member_name} -> {target}",
-                                "description": f"{member_name} 请求将工作区文件 `{filename}` 传输给 {target}。"
-                            })
-                            student.status = "等待审批" if game_state.language == "cn" else "Awaiting Approval"
-                            student.activity = "等待教授批准文件传输..." if game_state.language == "cn" else "Awaiting file transfer approval..."
-                            
-                elif action_type == "request_approval":
-                    app_type = params.get("type")
-                    title = params.get("title")
-                    description = params.get("description")
-                    content = params.get("content")
+                # Write to workspace
+                os.makedirs(student_ws_dir, exist_ok=True)
+                with open(os.path.join(student_ws_dir, "arxiv_results.txt"), "w", encoding="utf-8") as f_out:
+                    f_out.write(papers_text)
+                student.thoughts.append("文献检索完成。结果已保存至 arxiv_results.txt。" if game_state.language == "cn" else "ArXiv query completed. Saved to arxiv_results.txt.")
+                student.status = "空闲" if game_state.language == "cn" else "Idle"
+                student.activity = "完成文献综述数据拉取。" if game_state.language == "cn" else "Literature search completed."
+                student.energy = max(0, student.energy - 10)
+                
+            elif action_type == "write_file":
+                filename = params.get("filename")
+                content = params.get("content")
+                if filename and content:
+                    os.makedirs(student_ws_dir, exist_ok=True)
+                    with open(os.path.join(student_ws_dir, filename), "w", encoding="utf-8") as f_out:
+                        f_out.write(content)
+                    student.thoughts.append(f"已生成工作区文件: {filename}" if game_state.language == "cn" else f"Written workspace file: {filename}")
+                    student.energy = max(0, student.energy - 12)
                     
-                    app_id = f"approval_{int(time.time()*1000)}"
+                    # Backwards compatibility stages
+                    if member_name == "Bob" and filename == "literature_review.md":
+                        project.proposal_draft = content
+                        project.stage = "Proposal"
+                    elif member_name == "Bob" and filename == "paper.md":
+                        project.paper_draft = content
+                        project.stage = "Awaiting Submission"
+                    elif member_name == "Alice" and filename == "proposal.md":
+                        project.proposal_draft = content
+                        
+            elif action_type == "run_experiment" and member_name == "Alice":
+                if is_auto:
+                    code_path = os.path.join(student_ws_dir, "experiment.py")
+                    code_block = ""
+                    if os.path.exists(code_path):
+                        with open(code_path, "r", encoding="utf-8") as f_in:
+                            code_block = f_in.read()
+                    else:
+                        code_block = "print('Running default code...')"
+                        
+                    student.status = "实验中" if game_state.language == "cn" else "Experimenting"
+                    student.activity = "运行沙箱实验脚本..." if game_state.language == "cn" else "Executing code sandbox..."
+                    
+                    sandbox_result = execute_python_code(code_block, student_ws_dir)
+                    stdout = sandbox_result.get("stdout", "")
+                    stderr = sandbox_result.get("stderr", "")
+                    exit_code = sandbox_result.get("exit_code", -1)
+                    
+                    os.makedirs(student_ws_dir, exist_ok=True)
+                    with open(os.path.join(student_ws_dir, "results.log"), "w", encoding="utf-8") as f_out:
+                        f_out.write(f"--- Sandbox Exit Code: {exit_code} ---\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}")
+                        
+                    student.thoughts.append("沙箱实验已顺利跑通。结果写入 results.log。" if game_state.language == "cn" else "Sandbox finished. Output saved to results.log.")
+                    student.status = "空闲" if game_state.language == "cn" else "Idle"
+                    student.activity = "沙箱脚本执行完毕。" if game_state.language == "cn" else "Sandbox run completed."
+                    student.energy = max(0, student.energy - 25)
+                    
+                    # Apply expense
+                    sandbox_cost = 5.0
+                    game_state.funding = max(0.0, game_state.funding - sandbox_cost)
+                    game_state.add_log(f"Alice 自动运行沙箱实验，消耗 ¥{sandbox_cost:.2f}" if game_state.language == "cn" else f"Alice executed sandbox experiment automatically, cost ¥{sandbox_cost:.2f}")
+                else:
+                    app_id = f"sandbox_{int(time.time()*1000)}"
                     game_state.pending_approvals.append({
                         "id": app_id,
-                        "type": app_type,
-                        "student": member_name,
-                        "title": title,
-                        "description": description,
-                        "content": content
+                        "type": "run_sandbox",
+                        "student": "Alice",
+                        "title": "审批沙箱实验运行" if game_state.language == "cn" else "Approve Sandbox Experiment",
+                        "description": "Alice 请求运行她的实验代码 `experiment.py`。这需要开启安全沙箱隔离容器。"
                     })
                     student.status = "等待审批" if game_state.language == "cn" else "Awaiting Approval"
-                    student.activity = f"审核中：{title}" if game_state.language == "cn" else f"Awaiting review: {title}"
+                    student.activity = "等待教授批准启动实验..." if game_state.language == "cn" else "Awaiting sandbox run approval..."
                     
-            game_state.save()
-            
-            # Since an agent reacted, let's break and give other agents a chance in the next background loop
-            break
+            elif action_type == "request_file_transfer":
+                filename = params.get("filename")
+                target = params.get("target_agent")
+                if filename and target:
+                    if is_auto:
+                        src = os.path.join(student_ws_dir, filename)
+                        dst_dir = os.path.join(base_dir, "workspace", target)
+                        os.makedirs(dst_dir, exist_ok=True)
+                        dst = os.path.join(dst_dir, filename)
+                        if os.path.exists(src):
+                            shutil.copy(src, dst)
+                            game_state.add_log(f"[自动传输] 文件 {filename} 已从 {member_name} 共享至 {target}" if game_state.language == "cn" else f"[Auto Transfer] File {filename} shared from {member_name} to {target}")
+                    else:
+                        app_id = f"transfer_{int(time.time()*1000)}"
+                        game_state.pending_approvals.append({
+                            "id": app_id,
+                            "type": "file_transfer",
+                            "source": member_name,
+                            "target": target,
+                            "filename": filename,
+                            "title": f"共享文件请求: {member_name} -> {target}" if game_state.language == "cn" else f"File Shared Request: {member_name} -> {target}",
+                            "description": f"{member_name} 请求将工作区文件 `{filename}` 传输给 {target}。"
+                        })
+                        student.status = "等待审批" if game_state.language == "cn" else "Awaiting Approval"
+                        student.activity = "等待教授批准文件传输..." if game_state.language == "cn" else "Awaiting file transfer approval..."
+                        
+            elif action_type == "request_approval":
+                app_type = params.get("type")
+                title = params.get("title")
+                description = params.get("description")
+                content = params.get("content")
+                
+                app_id = f"approval_{int(time.time()*1000)}"
+                game_state.pending_approvals.append({
+                    "id": app_id,
+                    "type": app_type,
+                    "student": member_name,
+                    "title": title,
+                    "description": description,
+                    "content": content
+                })
+                student.status = "等待审批" if game_state.language == "cn" else "Awaiting Approval"
+                student.activity = f"审核中：{title}" if game_state.language == "cn" else f"Awaiting review: {title}"
+                
+        game_state.save()
+
+    if reacted:
+        trigger_next = False
+        with state_lock:
+            if game_state.autonomous_mode:
+                if game_state.session_cost < game_state.max_cost_limit:
+                    trigger_next = True
+            else:
+                if consecutive_replies.get(channel_id, 0) < 3:
+                    trigger_next = True
+                    
+        if trigger_next:
+            time.sleep(1.0)
+            trigger_background_agent_loop(channel_id, game_state)

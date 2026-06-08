@@ -73,7 +73,51 @@ const TRANSLATIONS = {
     maxCost: "单次会话最大经费额度限制 (元)",
     saveSettings: "保存设置",
     resetConfirm: "确定要重置实验室吗？所有当前的实验室进度和成果都将丢失。",
-    sessionCostLabel: "当前会话消耗 (元)"
+    sessionCostLabel: "当前会话消耗 (元)",
+    btnProjectManager: "📁 课题项目管理",
+    btnResetProject: "🔄 重置当前项目",
+    resetProjectConfirm: "确定要重置当前正在进行的课题吗？当前课题的经费、天数、学生状态和工作区文件都将被重置为第1天，但保留该课题研究方向。此操作不可撤销！",
+    projectManagerTitle: "项目管理器 (课题存档管理)",
+    projectListHeader: "历史课题与进行中课题列表",
+    thTopic: "课题名称 / 研究方向",
+    thStage: "当前阶段",
+    thDay: "模拟天数",
+    thFunding: "剩余经费",
+    thReputation: "声望",
+    thLastSaved: "上次自动保存时间",
+    thActions: "操作",
+    btnLoad: "加载存档",
+    btnDelete: "删除存档",
+    btnCreateNewProject: "🆕 新建课题项目",
+    createNewConfirm: "确定要新建一个课题项目吗？当前进行中的项目进度与工作区文件将自动保存。您可以随时从项目管理器中重新加载它。",
+    loadConfirm: "确定要加载此项目吗？加载前会自动保存当前进行中项目的最新进度。加载后将切换到选定项目的进度、学生和工作区文件。",
+    deleteConfirm: "确定要彻底删除该项目吗？这会永久删除其所有存档数据和工作区文件。此操作不可逆！",
+    activeBadge: "进行中",
+    noProjects: "暂无历史项目存档。",
+    btnRecruitStudent: "➕ 招募科研学生",
+    btnDismissStudent: "Dismiss / 退出实验室",
+    dismissConfirm: "确定要将学生 {name} 移出实验室吗？这会将其移出团队和群聊。但其个人工作区文件夹（包含所有生成的代码和日志文件）仍然会完整保留，不会丢失任何研究成果。",
+    recruitModalTitle: "招募新实验室成员 (PhD 学生)",
+    labelPreset: "选择学生职位预设",
+    presetDataEng: "数据工程师 (Data Engineer)",
+    presetTheoAnalyst: "理论分析师 (Theoretical Analyst)",
+    presetMLDev: "机器学习开发 (ML Dev)",
+    presetWriter: "学术论文写手 (Academic Writer)",
+    presetCustom: "自定义职位 (Custom Role)",
+    labelName: "学生姓名",
+    labelRole: "科研角色 (Role Title)",
+    labelSkills: "专业技能分布 (0 - 10分)",
+    labelResearch: "研究 (Research)",
+    labelCoding: "编码 (Coding)",
+    labelWriting: "写作 (Writing)",
+    labelPersonality: "性格与背景特征 (Personality Profile)",
+    placeholderName: "例如：David",
+    placeholderRole: "例如：强化学习工程师",
+    placeholderPersonality: "例如：做事严谨，性格活跃，偏好快速实验，常用Emoji表达情绪。",
+    btnRecruitSubmit: "确认录用并招募入所",
+    validationNameEmpty: "学生姓名不能为空！",
+    validationRoleEmpty: "角色标签不能为空！",
+    validationNameExists: "该姓名的学生已在实验团队中。"
   },
   en: {
     title: "PI Simulator",
@@ -128,7 +172,51 @@ const TRANSLATIONS = {
     maxCost: "Session Cost Limit (RMB)",
     saveSettings: "Save Configuration",
     resetConfirm: "Are you sure you want to reset the lab? All progress will be lost.",
-    sessionCostLabel: "Current Session Cost (RMB)"
+    sessionCostLabel: "Current Session Cost (RMB)",
+    btnProjectManager: "📁 Project Manager",
+    btnResetProject: "🔄 Reset Current Project",
+    resetProjectConfirm: "Are you sure you want to reset the current active project? The budget, day, student statuses, and workspace files will be reset to Day 1, keeping the same topic. This action cannot be undone!",
+    projectManagerTitle: "Project Manager (Saves & Progression)",
+    projectListHeader: "All Active & Historical Projects",
+    thTopic: "Research Topic / Question",
+    thStage: "Stage",
+    thDay: "Day",
+    thFunding: "Budget Left",
+    thReputation: "Reputation",
+    thLastSaved: "Last Auto-Saved",
+    thActions: "Actions",
+    btnLoad: "Load Save",
+    btnDelete: "Delete Save",
+    btnCreateNewProject: "🆕 Create New Project",
+    createNewConfirm: "Are you sure you want to create a new project? The current active project's progress and workspace files will be saved automatically, and you can reload it anytime.",
+    loadConfirm: "Are you sure you want to load this project? The current project's progress will be saved automatically. Loading will switch you to the selected project's state, students, and workspace files.",
+    deleteConfirm: "Are you sure you want to delete this project? This will permanently delete all its saved data and workspace files. This action cannot be undone!",
+    activeBadge: "Active Now",
+    noProjects: "No historical projects found.",
+    btnRecruitStudent: "➕ Recruit PhD Student",
+    btnDismissStudent: "Dismiss / Exit Lab",
+    dismissConfirm: "Are you sure you want to dismiss {name}? This will remove them from the team and channels. However, their workspace directory (containing all code and results) will be preserved on disk so no research data is lost.",
+    recruitModalTitle: "Recruit PhD Student",
+    labelPreset: "Select Student Preset",
+    presetDataEng: "Data Engineer",
+    presetTheoAnalyst: "Theoretical Analyst",
+    presetMLDev: "ML Dev",
+    presetWriter: "Academic Writer",
+    presetCustom: "Custom Role",
+    labelName: "Student Name",
+    labelRole: "Role Title",
+    labelSkills: "Skill distribution (0 - 10)",
+    labelResearch: "Research",
+    labelCoding: "Coding",
+    labelWriting: "Writing",
+    labelPersonality: "Personality Profile & Preferences",
+    placeholderName: "e.g., David",
+    placeholderRole: "e.g., RL Engineer",
+    placeholderPersonality: "e.g., Very detail-oriented, energetic, likes running quick experiments.",
+    btnRecruitSubmit: "Confirm Hire & Recruit",
+    validationNameEmpty: "Student name cannot be empty!",
+    validationRoleEmpty: "Role title cannot be empty!",
+    validationNameExists: "A student with this name is already in the lab."
   }
 };
 
@@ -164,6 +252,244 @@ export default function App() {
   // Rejection feedback state
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [selectedConf, setSelectedConf] = useState(CONFERENCES[0].name);
+
+  // Project Manager States
+  const [showProjectManager, setShowProjectManager] = useState(false);
+  const [historicalProjects, setHistoricalProjects] = useState([]);
+
+  // Student Recruitment States
+  const [showRecruitModal, setShowRecruitModal] = useState(false);
+  const [recruitPreset, setRecruitPreset] = useState('data_engineer');
+  const [recruitName, setRecruitName] = useState('');
+  const [recruitRole, setRecruitRole] = useState('Data Engineer');
+  const [recruitResearch, setRecruitResearch] = useState(0.5);
+  const [recruitCoding, setRecruitCoding] = useState(0.9);
+  const [recruitWriting, setRecruitWriting] = useState(0.4);
+  const [recruitPersonality, setRecruitPersonality] = useState('');
+
+  const handleOpenRecruitModal = () => {
+    setRecruitPreset('data_engineer');
+    setRecruitName('');
+    setRecruitRole(state.language === 'cn' ? '数据工程师' : 'Data Engineer');
+    setRecruitResearch(0.5);
+    setRecruitCoding(0.9);
+    setRecruitWriting(0.4);
+    setRecruitPersonality(state.language === 'cn' ? '做事非常有逻辑，擅长处理庞大复杂的数据清洗与流水线构建。' : 'Highly logical, excels at data cleaning pipelines.');
+    setShowRecruitModal(true);
+  };
+
+  const handlePresetChange = (preset) => {
+    setRecruitPreset(preset);
+    const isCn = state.language === 'cn';
+    if (preset === 'data_engineer') {
+      setRecruitRole(isCn ? '数据工程师' : 'Data Engineer');
+      setRecruitResearch(0.5);
+      setRecruitCoding(0.9);
+      setRecruitWriting(0.4);
+      setRecruitPersonality(isCn ? '做事非常有逻辑，擅长处理庞大复杂的数据清洗与流水线构建。' : 'Highly logical, excels at data cleaning pipelines.');
+    } else if (preset === 'theoretical_analyst') {
+      setRecruitRole(isCn ? '理论分析师' : 'Theoretical Analyst');
+      setRecruitResearch(0.9);
+      setRecruitCoding(0.4);
+      setRecruitWriting(0.9);
+      setRecruitPersonality(isCn ? '学术严谨，喜欢钻研数学证明与论文细节，说话较为正式。' : 'Rigorous academic, enjoys math proofs and paper details, speaks formally.');
+    } else if (preset === 'ml_dev') {
+      setRecruitRole(isCn ? '机器学习开发' : 'ML Dev');
+      setRecruitResearch(0.6);
+      setRecruitCoding(0.9);
+      setRecruitWriting(0.5);
+      setRecruitPersonality(isCn ? '代码极客，开发运行测试极快，喜欢尝试最新算法与架构。' : 'Code hacker, runs tests extremely fast, loves testing new models.');
+    } else if (preset === 'academic_writer') {
+      setRecruitRole(isCn ? '学术论文写手' : 'Academic Writer');
+      setRecruitResearch(0.6);
+      setRecruitCoding(0.5);
+      setRecruitWriting(0.9);
+      setRecruitPersonality(isCn ? '文字表达极佳，擅长将复杂的实验日志撰写成结构严整的学术论文。' : 'Excellent writing, excels at drafting papers from raw experiment results.');
+    } else {
+      setRecruitRole('');
+      setRecruitResearch(0.5);
+      setRecruitCoding(0.5);
+      setRecruitWriting(0.5);
+      setRecruitPersonality('');
+    }
+  };
+
+  const handleRecruitSubmit = async (e) => {
+    e.preventDefault();
+    if (!recruitName.trim()) {
+      alert(t.validationNameEmpty);
+      return;
+    }
+    if (!recruitRole.trim()) {
+      alert(t.validationRoleEmpty);
+      return;
+    }
+    if (state.students.some(s => s.name.toLowerCase() === recruitName.trim().toLowerCase())) {
+      alert(t.validationNameExists);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/game/students/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: recruitName.trim(),
+          role: recruitRole.trim(),
+          skills: {
+            research: Number(recruitResearch),
+            coding: Number(recruitCoding),
+            writing: Number(recruitWriting)
+          },
+          personality: recruitPersonality,
+          preset_id: recruitPreset
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Recruitment failed");
+      }
+
+      const data = await res.json();
+      setState(data);
+      setSelectedStudent(recruitName.trim());
+      setShowRecruitModal(false);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDismissStudent = async (studentName) => {
+    const confirmMsg = t.dismissConfirm.replace("{name}", studentName);
+    if (!window.confirm(confirmMsg)) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/game/students/dismiss`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: studentName })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Dismissal failed");
+      }
+
+      const data = await res.json();
+      setState(data);
+      if (selectedStudent === studentName) {
+        setSelectedStudent(data.students.length > 0 ? data.students[0].name : null);
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchHistoricalProjects = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/game/projects`);
+      if (res.ok) {
+        const data = await res.json();
+        setHistoricalProjects(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch historical projects", err);
+    }
+  };
+
+  const handleOpenProjectManager = () => {
+    fetchHistoricalProjects();
+    setShowProjectManager(true);
+  };
+
+  const handleResetProject = async () => {
+    if (!window.confirm(t.resetProjectConfirm)) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/game/projects/reset`, { method: 'POST' });
+      if (!res.ok) throw new Error("Reset project failed");
+      const data = await res.json();
+      setState(data);
+      if (data.students && data.students.length > 0) {
+        setSelectedStudent(data.students[0].name);
+      }
+      setActiveChannelId('group');
+      setActiveTab('office');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNewProjectIntent = async () => {
+    if (!window.confirm(t.createNewConfirm)) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/game/projects/new_intent`, { method: 'POST' });
+      if (!res.ok) throw new Error("Creating new project failed");
+      const data = await res.json();
+      setState(data);
+      setShowProjectManager(false);
+      setActiveTab('office');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadProject = async (projectId) => {
+    if (!window.confirm(t.loadConfirm)) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/game/projects/load`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: projectId })
+      });
+      if (!res.ok) throw new Error("Loading project failed");
+      const data = await res.json();
+      setState(data);
+      if (data.students && data.students.length > 0) {
+        setSelectedStudent(data.students[0].name);
+      }
+      setActiveChannelId('group');
+      setShowProjectManager(false);
+      setActiveTab('office');
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteProject = async (projectId) => {
+    if (!window.confirm(t.deleteConfirm)) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/game/projects/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_id: projectId })
+      });
+      if (!res.ok) throw new Error("Deleting project failed");
+      const data = await res.json();
+      setState(data);
+      fetchHistoricalProjects();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Poll state every 3 seconds
   useEffect(() => {
@@ -493,22 +819,41 @@ export default function App() {
         <div className="project-sidebar-card">
           <h3>{t.activeProject}</h3>
           {project ? (
-            <div className="project-info">
+            <div className="project-info" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <p className="topic">"{project.topic}"</p>
-              <div className="stage-badge">{project.stage}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                <div className="stage-badge">{project.stage}</div>
+                <button 
+                  onClick={handleResetProject} 
+                  className="btn-reset" 
+                  style={{ padding: '3px 8px', fontSize: '0.75rem', marginTop: '0', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  title={t.btnResetProject}
+                >
+                  🔄 {state.language === 'cn' ? '重置项目' : 'Reset'}
+                </button>
+              </div>
             </div>
           ) : (
             <p className="no-project-text">{t.noProject}</p>
           )}
         </div>
 
-        <div className="sidebar-footer">
-          <button onClick={handleOpenSettings} className="btn-settings">
-            {t.settingsBtn}
+        <div className="sidebar-footer" style={{ gap: '6px' }}>
+          <button 
+            onClick={handleOpenProjectManager} 
+            className="btn-primary" 
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'linear-gradient(135deg, var(--accent-color) 0%, #4f46e5 100%)', padding: '10px' }}
+          >
+            {t.btnProjectManager}
           </button>
-          <button onClick={handleReset} className="btn-reset">
-            {t.resetSim}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+            <button onClick={handleOpenSettings} className="btn-settings" style={{ flex: 1 }}>
+              {t.settingsBtn}
+            </button>
+            <button onClick={handleReset} className="btn-reset" style={{ flex: 1, padding: '8px' }}>
+              {t.resetSim}
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -601,7 +946,16 @@ export default function App() {
                     </section>
                   ) : (
                     <div className="active-lab-view">
-                      <h2>{t.studentsTitle}</h2>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <h2 style={{ margin: 0 }}>{t.studentsTitle}</h2>
+                        <button 
+                          onClick={handleOpenRecruitModal} 
+                          className="btn-primary" 
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, var(--accent-color) 0%, #4f46e5 100%)' }}
+                        >
+                          {t.btnRecruitStudent}
+                        </button>
+                      </div>
                       <div className="students-grid">
                         {state.students.map((student) => {
                           const statusColors = {
@@ -669,7 +1023,16 @@ export default function App() {
                       {/* Selected Student Workspace Panel */}
                       {currentStudentObj && (
                         <section className="student-workspace glass-card">
-                          <h2>{currentStudentObj.name}{t.workspaceTitle}</h2>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '10px' }}>
+                            <h2 style={{ border: 'none', padding: 0, margin: 0 }}>{currentStudentObj.name}{t.workspaceTitle}</h2>
+                            <button 
+                              onClick={() => handleDismissStudent(currentStudentObj.name)}
+                              className="btn-danger" 
+                              style={{ padding: '6px 12px', fontSize: '0.8rem', borderRadius: '6px', background: 'var(--color-danger)' }}
+                            >
+                              ⚠️ {t.btnDismissStudent}
+                            </button>
+                          </div>
                           <div className="workspace-layout">
                             <div className="workspace-files-column">
                               <h4>📁 {t.filesTitle}</h4>
@@ -1053,6 +1416,209 @@ export default function App() {
                 {t.saveSettings}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Recruit Student Modal */}
+      {showRecruitModal && (
+        <div className="file-modal-overlay" onClick={() => setShowRecruitModal(false)}>
+          <div className="file-modal settings-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="file-modal-header">
+              <h3>🎓 {t.recruitModalTitle}</h3>
+              <button className="btn-close" onClick={() => setShowRecruitModal(false)}>✕</button>
+            </div>
+            
+            <form onSubmit={handleRecruitSubmit} className="settings-form" style={{ maxHeight: '75vh', overflowY: 'auto', padding: '20px' }}>
+              <div className="form-group">
+                <label>{t.labelPreset}</label>
+                <select value={recruitPreset} onChange={(e) => handlePresetChange(e.target.value)}>
+                  <option value="data_engineer">{t.presetDataEng}</option>
+                  <option value="theoretical_analyst">{t.presetTheoAnalyst}</option>
+                  <option value="ml_dev">{t.presetMLDev}</option>
+                  <option value="academic_writer">{t.presetWriter}</option>
+                  <option value="custom">{t.presetCustom}</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>{t.labelName}</label>
+                <input
+                  type="text"
+                  placeholder={t.placeholderName}
+                  value={recruitName}
+                  onChange={(e) => setRecruitName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>{t.labelRole}</label>
+                <input
+                  type="text"
+                  placeholder={t.placeholderRole}
+                  value={recruitRole}
+                  onChange={(e) => setRecruitRole(e.target.value)}
+                  disabled={recruitPreset !== 'custom'}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>{t.labelSkills}</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px', border: '1px solid var(--glass-border)' }}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t.labelResearch}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{(recruitResearch * 10).toFixed(0)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.0"
+                      max="1.0"
+                      step="0.1"
+                      value={recruitResearch}
+                      onChange={(e) => setRecruitResearch(Number(e.target.value))}
+                      disabled={recruitPreset !== 'custom'}
+                      style={{ width: '100%', accentColor: 'var(--accent-color)', cursor: recruitPreset === 'custom' ? 'pointer' : 'not-allowed' }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t.labelCoding}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{(recruitCoding * 10).toFixed(0)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.0"
+                      max="1.0"
+                      step="0.1"
+                      value={recruitCoding}
+                      onChange={(e) => setRecruitCoding(Number(e.target.value))}
+                      disabled={recruitPreset !== 'custom'}
+                      style={{ width: '100%', accentColor: 'var(--accent-color)', cursor: recruitPreset === 'custom' ? 'pointer' : 'not-allowed' }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t.labelWriting}</span>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{(recruitWriting * 10).toFixed(0)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.0"
+                      max="1.0"
+                      step="0.1"
+                      value={recruitWriting}
+                      onChange={(e) => setRecruitWriting(Number(e.target.value))}
+                      disabled={recruitPreset !== 'custom'}
+                      style={{ width: '100%', accentColor: 'var(--accent-color)', cursor: recruitPreset === 'custom' ? 'pointer' : 'not-allowed' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>{t.labelPersonality}</label>
+                <textarea
+                  placeholder={t.placeholderPersonality}
+                  value={recruitPersonality}
+                  onChange={(e) => setRecruitPersonality(e.target.value)}
+                  style={{ width: '100%', minHeight: '80px', padding: '10px', borderRadius: '8px', border: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.3)', color: 'white', resize: 'vertical' }}
+                  required
+                />
+              </div>
+
+              <button type="submit" className="btn-primary-large" style={{ marginTop: '10px' }} disabled={loading}>
+                {t.btnRecruitSubmit}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Project Manager Modal */}
+      {showProjectManager && (
+        <div className="file-modal-overlay" onClick={() => setShowProjectManager(false)}>
+          <div className="file-modal settings-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="file-modal-header">
+              <h3>⚙️ {t.projectManagerTitle}</h3>
+              <button className="btn-close" onClick={() => setShowProjectManager(false)}>✕</button>
+            </div>
+            
+            <div className="file-modal-body" style={{ display: 'flex', flexDirection: 'column', padding: '20px', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                <h4 style={{ color: 'var(--text-secondary)' }}>{t.projectListHeader}</h4>
+                <button onClick={handleNewProjectIntent} className="btn-primary-large" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, var(--accent-color) 0%, #10b981 100%)', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}>
+                  {t.btnCreateNewProject}
+                </button>
+              </div>
+              
+              <div className="project-history-list" style={{ flexGrow: 1, overflowY: 'auto' }}>
+                {historicalProjects.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                    <p style={{ fontSize: '1.5rem', marginBottom: '10px' }}>📁</p>
+                    <p>{t.noProjects}</p>
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', color: 'var(--text-primary)' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--glass-border)', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                        <th style={{ padding: '12px 8px' }}>{t.thTopic}</th>
+                        <th style={{ padding: '12px 8px' }}>{t.thStage}</th>
+                        <th style={{ padding: '12px 8px' }}>{t.thDay}</th>
+                        <th style={{ padding: '12px 8px' }}>{t.thFunding}</th>
+                        <th style={{ padding: '12px 8px' }}>{t.thReputation}</th>
+                        <th style={{ padding: '12px 8px' }}>{t.thLastSaved}</th>
+                        <th style={{ padding: '12px 8px', textAlign: 'right' }}>{t.thActions}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {historicalProjects.map((proj) => {
+                        const isActive = state.active_project_id === proj.project_id;
+                        return (
+                          <tr key={proj.project_id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', background: isActive ? 'rgba(99,102,241,0.05)' : 'transparent' }}>
+                            <td style={{ padding: '14px 8px', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isActive ? 'bold' : 'normal' }}>
+                              {isActive && <span style={{ marginRight: '6px', background: 'var(--accent-color)', color: '#fff', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px' }}>{t.activeBadge}</span>}
+                              <span title={proj.topic}>{proj.topic}</span>
+                            </td>
+                            <td style={{ padding: '14px 8px' }}>
+                              <span className="stage-badge" style={{ padding: '2px 6px', fontSize: '0.75rem', background: isActive ? 'var(--accent-color)' : '#334155', boxShadow: 'none' }}>
+                                {proj.stage}
+                              </span>
+                            </td>
+                            <td style={{ padding: '14px 8px' }}>Day {proj.day}</td>
+                            <td style={{ padding: '14px 8px' }}>¥{proj.funding.toLocaleString()}</td>
+                            <td style={{ padding: '14px 8px' }}>{proj.reputation.toFixed(1)}</td>
+                            <td style={{ padding: '14px 8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                              {new Date(proj.last_saved * 1000).toLocaleString(state.language === 'cn' ? 'zh-CN' : 'en-US')}
+                            </td>
+                            <td style={{ padding: '14px 8px', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <button 
+                                  onClick={() => handleLoadProject(proj.project_id)}
+                                  className="btn-primary" 
+                                  style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#3b82f6' }}
+                                >
+                                  {t.btnLoad}
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteProject(proj.project_id)}
+                                  className="btn-danger" 
+                                  style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                                >
+                                  {t.btnDelete}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

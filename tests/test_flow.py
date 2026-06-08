@@ -1,11 +1,14 @@
 from fastapi.testclient import TestClient
 import os
 import shutil
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from app.main import app
 
-@patch("app.agent_manager.get_llm_client", return_value=None)
-def test_full_gameplay_flow(mock_get_client):
+mock_openai_client = MagicMock()
+mock_openai_client.chat.completions.create.side_effect = Exception("Mock LLM Call")
+
+@patch("app.agent_manager.OpenAI", return_value=mock_openai_client)
+def test_full_gameplay_flow(mock_openai):
     print("Initializing TestClient and cleaning workspace...")
     client = TestClient(app)
     
